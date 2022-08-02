@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "pretty": true,
+    "target": "ESNext",
+    "moduleResolution": "Node"
+  },
+  "include": ["./"]
+}

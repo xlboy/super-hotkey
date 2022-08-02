@@ -1,0 +1,75 @@
+{
+  "name": "super-hotkey",
+  "description": "",
+  "author": "xlboy, HaibaraAiSherry",
+  "license": "MIT",
+  "packageManager": ">=pnpm@7.5.0",
+  "engines": {
+    "node": ">=17.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "keywords": [
+    "super-hotkey",
+    "super-shortcuts",
+    "super-keyboard",
+    "hotkey",
+    "shortcuts",
+    "keypress",
+    "keyboard"
+  ],
+  "scripts": {
+    "postinstall": "simple-git-hooks",
+    "test": "jest",
+    "build": "npm run test && tsup",
+    "clean": "rimraf ./**/node_modules",
+    "type-check": "tsc --pretty --skipLibCheck --noEmit"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.18.2",
+    "@commitlint/cli": "^17.0.2",
+    "@commitlint/config-conventional": "^17.0.2",
+    "@commitlint/types": "^17.0.0",
+    "@microsoft/api-extractor": "^7.24.1",
+    "@type-challenges/utils": "^0.1.1",
+    "@types/jest": "^27.5.1",
+    "@typescript-eslint/eslint-plugin": "^5.27.0",
+    "@typescript-eslint/parser": "^5.27.0",
+    "esbuild": "^0.14.39",
+    "esbuild-jest": "^0.5.0",
+    "eslint": "^8.16.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "execa": "^6.1.0",
+    "jest": "^27.5.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "^2.6.2",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.75.5",
+    "simple-git-hooks": "^2.8.0",
+    "ts-toolbelt": "^9.6.0",
+    "tsup": "^6.2.1",
+    "typescript": "^4.7.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run type-check && npx lint-staged",
+    "commit-msg": "npx --no-install commitlint -e $1 -g ./commitlint.config.js"
+  },
+  "lint-staged": {
+    "src/**/*.{ts, js}": [
+      "eslint --cache --fix"
+    ]
+  }
+}
