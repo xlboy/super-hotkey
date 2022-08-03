@@ -2,6 +2,7 @@
   "compilerOptions": {
     "noEmit": true,
     "pretty": true,
+    "lib": ["DOM", "ESNext"],
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -9,7 +10,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "target": "ESNext",
     "moduleResolution": "Node"
   },
   "include": ["./"]
