@@ -32,9 +32,9 @@
   "scripts": {
     "postinstall": "simple-git-hooks",
     "test": "jest",
-    "build": "npm run test && tsup",
+    "build": "pnpm test && tsup",
     "clean": "rimraf ./**/node_modules",
-    "type-check": "tsc --pretty --skipLibCheck --noEmit"
+    "type-check": "tsc"
   },
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.18.2",
@@ -64,8 +64,8 @@
     "typescript": "^4.7.4"
   },
   "simple-git-hooks": {
-    "pre-commit": "npm run type-check && npx lint-staged",
-    "commit-msg": "npx --no-install commitlint -e $1 -g ./commitlint.config.js"
+    "pre-commit": "pnpm type-check && lint-staged",
+    "commit-msg": "commitlint -e $1 -g ./commitlint.config.js"
   },
   "lint-staged": {
     "src/**/*.{ts, js}": [
