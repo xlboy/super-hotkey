@@ -64,8 +64,8 @@
     "typescript": "^4.7.4"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm type-check && lint-staged",
-    "commit-msg": "commitlint -e $1 -g ./commitlint.config.js"
+    "pre-commit": "pnpm type-check && pnpm exec lint-staged",
+    "commit-msg": "pnpm exec commitlint -e $1 -g ./commitlint.config.js"
   },
   "lint-staged": {
     "src/**/*.{ts, js}": [
