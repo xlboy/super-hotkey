@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "noEmit": true,
+    "pretty": true,
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -7,7 +9,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "pretty": true,
     "target": "ESNext",
     "moduleResolution": "Node"
   },
