@@ -4,11 +4,9 @@ export function defineVariables<T>() {
   return <C extends T>(value: C) => value;
 }
 
-type TriggerMode = 'keydown' | 'keyup' | 'keypress';
-
 export type KeyName = EnhancedKeyName | NativeKeyName;
 
-export interface SuperHotkeyBaseConfig {
+export interface BaseConfig {
   /**
    * Enable dev tools
    * @default false
@@ -16,13 +14,18 @@ export interface SuperHotkeyBaseConfig {
   enableDevTools?: boolean;
 }
 
-interface SuperHotkeyBaseOptions {
+interface BaseOptions {
   trigger?: {
     /**
      * Trigger mode
      * @default 'keydown'
      */
-    mode?: TriggerMode;
+    mode?: 'keydown' | 'keyup' | 'keypress';
+
+    /**
+     * @default false
+     */
+    capture?: boolean;
 
     /**
      * Throttling delay of hotkey response, The unit is `ms`
@@ -35,29 +38,48 @@ interface SuperHotkeyBaseOptions {
      */
     allowRepeatWhenLongPress: boolean;
   };
-
-  event?: {
-    /**
-     * Stop propagation
-     * @default false
-     */
-    stopPropagation?: boolean;
-
-    /**
-     * Prevents default browser behavior
-     * @default true
-     */
-    preventDefault?: boolean;
-  };
-}
-
-export interface SuperHotkeyGlobalOptions extends SuperHotkeyBaseOptions {
+  targetElement?: HTMLDivElement;
+  scope?: string;
   /**
-   * Hotkey the element to bind, When the element is uninstalled, the hotkey is also uninstalled
+   * **`热键级别`**
+   *
+   * 在相同热键中，会按照 `level 大小` 进行逐一响应
    */
-  bindElement?: HTMLDivElement;
+  level?: number;
 }
 
-export interface SuperHotkeyScopeOptions {
-  targetElement: HTMLDivElement;
+//#region  //*=========== event-options ===========
+
+export interface EventOptions extends BaseOptions {
+  handler: () => void;
+  /**
+   * **是否自动 `停止事件传播`**
+   *
+   * 如为 `false`，则在 `handler` 中通过 `event.stopPropagation` 手动处理
+   *
+   * @default false
+   */
+  autoStopPropagation?: boolean;
+
+  /**
+   * **是否自动 `阻止浏览器默认行为`**
+   *
+   * 如为 `false`，则在 `handler` 中通过 `event.preventDefault` 手动处理
+   *
+   * @default true
+   */
+  autoPreventDefault?: boolean;
 }
+
+//#endregion  //*======== event-options ===========
+
+//#region  //*=========== action-options ===========
+type DOMMethods = 'blur' | 'click' | 'focus';
+
+export interface DOMActionOptions extends BaseOptions {
+  action: DOMMethods;
+
+  // TODO: autoStopPropagation、autoPreventDefault 等属性，后面再决定是否要加。
+}
+
+//#endregion  //*======== action-options ===========
