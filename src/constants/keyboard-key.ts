@@ -1,11 +1,35 @@
-import { defineVariables } from '../types';
-
 /**
  * @see {@link https://github.com/puppeteer/puppeteer/blob/main/src/common/USKeyboardLayout.ts#L297}
  *
  * @see {@link https://developer.mozilla.org/zh-CN/docs/Web/API/UI_Events/Keyboard_event_key_values}
  */
-export const nativeKeyNames = [
+
+import { defineVariables } from '../types';
+
+//#region  //*=========== modifier ===========
+
+const defaultModifierKeys = ['Shift', 'Control', 'Alt', 'Meta'] as const;
+
+export const enhancedModifierKeyMap = defineVariables<
+  Record<string, DefaultModifierKey>
+>()({
+  '⌘': 'Meta',
+  Command: 'Meta',
+  '⌃': 'Control',
+  Option: 'Alt',
+  '⌥': 'Alt',
+  '⇧': 'Shift'
+});
+
+export type DefaultModifierKey = typeof defaultModifierKeys[number];
+
+export type EnhancedModifierKey = keyof typeof enhancedModifierKeyMap;
+
+export type MergedModifierKey = DefaultModifierKey | EnhancedModifierKey;
+//#endregion  //*======== modifier ===========
+
+//#region  //*=========== normal ===========
+export const defaultNormalKeys = [
   '0',
   '1',
   '2',
@@ -24,9 +48,6 @@ export const nativeKeyNames = [
   'Tab',
   'Clear',
   'Enter',
-  'Shift',
-  'Control',
-  'Alt',
   'Pause',
   'CapsLock',
   'Escape',
@@ -72,7 +93,6 @@ export const nativeKeyNames = [
   'x',
   'y',
   'z',
-  'Meta',
   'ContextMenu',
   '*',
   '+',
@@ -184,17 +204,16 @@ export const nativeKeyNames = [
   'VolumeUp'
 ] as const;
 
-export const enhancedKeyNameMap = defineVariables<Record<string, NativeKeyName>>()({
-  '⌘': 'Meta',
-  Command: 'Meta',
-  '⌃': 'Control',
-  Option: 'Alt',
-  '⌥': 'Alt',
-  '⇧': 'Shift',
+export const enhancedNormalKeyMap = defineVariables<Record<string, DefaultNormalKey>>()({
   '⇪': 'CapsLock',
-  '↩︎': 'Enter'
+  '↩︎': 'Enter',
+  Return: 'Enter',
+  Esc: 'Escape'
 });
 
-export type NativeKeyName = typeof nativeKeyNames[number];
+export type EnhancedNormalKey = keyof typeof enhancedNormalKeyMap;
 
-export type EnhancedKeyName = keyof typeof enhancedKeyNameMap;
+export type DefaultNormalKey = typeof defaultNormalKeys[number];
+
+export type MergedNormalKey = EnhancedNormalKey | DefaultNormalKey;
+//#endregion  //*======== normal ===========
