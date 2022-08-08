@@ -1,10 +1,8 @@
-import type { EnhancedKeyName, NativeKeyName } from './constants/key-name';
+import type { MergedModifierKey, MergedNormalKey } from './constants/keyboard-key';
 
 export function defineVariables<T>() {
   return <C extends T>(value: C) => value;
 }
-
-export type KeyName = EnhancedKeyName | NativeKeyName;
 
 export interface BaseConfig {
   /**
@@ -14,7 +12,15 @@ export interface BaseConfig {
   enableDevTools?: boolean;
 }
 
+// type NormalKeyStr = MergedNormalKey | (string & {});
+// type NormalKeyArr = MergedNormalKey[];
+// type NormalKey = NormalKeyStr | NormalKeyArr;
+
+//#region  //*=========== options ===========
+export type { EventOptions, DOMActionOptions };
+
 interface BaseOptions {
+  id?: string;
   trigger?: {
     /**
      * Trigger mode
@@ -48,9 +54,7 @@ interface BaseOptions {
   level?: number;
 }
 
-//#region  //*=========== event-options ===========
-
-export interface EventOptions extends BaseOptions {
+interface EventOptions extends BaseOptions {
   handler: () => void;
   /**
    * **是否自动 `停止事件传播`**
@@ -71,15 +75,71 @@ export interface EventOptions extends BaseOptions {
   autoPreventDefault?: boolean;
 }
 
-//#endregion  //*======== event-options ===========
+interface DOMActionOptions extends BaseOptions {
+  action: 'blur' | 'click' | 'focus';
 
-//#region  //*=========== action-options ===========
-type DOMMethods = 'blur' | 'click' | 'focus';
-
-export interface DOMActionOptions extends BaseOptions {
-  action: DOMMethods;
-
-  // TODO: autoStopPropagation、autoPreventDefault 等属性，后面再决定是否要加。
+  // TODO: 后面再决定是否要加 autoStopPropagation、autoPreventDefault 等属性
 }
 
-//#endregion  //*======== action-options ===========
+//#endregion  //*======== options ===========
+
+//#region  //*=========== hotkey ===========
+export type { KeyboardKey, CommonKey, CommonKeyObj, KeySequence };
+
+type KeyboardKey = MergedModifierKey | MergedNormalKey;
+
+type ModifierKeyStr = MergedModifierKey | (string & {});
+type ModifierKeyArr = MergedModifierKey[];
+type ModifierKey =
+  /* ------- 'ctrl+shift+alt' ------- */
+  | ModifierKeyStr
+  /* ------- ['ctrl', 'shift', 'alt'] ------- */
+  | ModifierKeyArr;
+
+type CommonKeyStr = string;
+
+type CommonKeyObj = {
+  modifierKey?: ModifierKey;
+  normalKey: MergedNormalKey;
+};
+
+type CommonKey =
+  /* ------- 'ctrl+shift+b, ctrl+c, d' ------- */
+  | CommonKeyStr
+  /* ------- ['ctrl+shift+b', 'ctrl+c', 'd'] ------- */
+  | CommonKeyStr[]
+  /* ------- { modifierKey: ['ctrl', 'shift'], normalKey: 'b' } ------- */
+  | CommonKeyObj
+  /* 
+    [
+      { modifierKey: ['ctrl', 'shift'], normalKey: 'b' }, 
+      { modifierKey: ['ctrl'], normalKey: 'c' }
+    ]
+  */
+  | CommonKeyObj[];
+
+type KeySequenceStr = string;
+
+type KeySequence =
+  /* ------- 'ctrl+b c a' ------- */
+  | KeySequenceStr
+  /* ------- ['ctrl+b', 'c', 'a'] ------- */
+  | KeySequenceStr[]
+  /* 
+    [
+      { modifierKey: ['ctrl'], normalKey: 'b' }, 
+      { normalKey: 'c' },
+      { normalKey: 'a' }
+    ]
+  */
+  | CommonKeyObj[]
+  /* 
+    [
+      { modifierKey: ['ctrl'], normalKey: 'b' }, 
+      'c',
+      'a'
+    ]
+  */
+  | Array<CommonKeyObj | MergedNormalKey>;
+
+//#endregion  //*======== hotkey ===========
