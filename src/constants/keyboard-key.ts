@@ -4,7 +4,7 @@
  * @see {@link https://developer.mozilla.org/zh-CN/docs/Web/API/UI_Events/Keyboard_event_key_values}
  */
 
-import { defineVariables } from '../types';
+import { defineVariables } from '../types/base';
 
 //#region  //*=========== modifier ===========
 
