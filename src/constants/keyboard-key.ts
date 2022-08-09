@@ -11,10 +11,13 @@ import { defineVariables } from '../types';
 const defaultModifierKeys = ['Shift', 'Control', 'Alt', 'Meta'] as const;
 
 export const enhancedModifierKeyMap = defineVariables<
-  Record<string, DefaultModifierKey>
+  Record<string, DefaultModifierKey | DefaultModifierKey[]>
 >()({
   '⌘': 'Meta',
   Command: 'Meta',
+  Cmd: 'Meta',
+  Mod: ['Meta', 'Control'],
+  Windows: 'Meta',
   '⌃': 'Control',
   Option: 'Alt',
   '⌥': 'Alt',
@@ -207,6 +210,12 @@ export const defaultNormalKeys = [
 export const enhancedNormalKeyMap = defineVariables<Record<string, DefaultNormalKey>>()({
   '⇪': 'CapsLock',
   '↩︎': 'Enter',
+  '←': 'ArrowLeft',
+  '→': 'ArrowRight',
+  '↑': 'ArrowUp',
+  '↓': 'ArrowDown',
+  Del: 'Delete',
+  Space: ' ',
   Return: 'Enter',
   Esc: 'Escape'
 });
