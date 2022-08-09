@@ -98,10 +98,10 @@ type ModifierKey =
 
 type CommonKeyStr = string;
 
-type CommonKeyObj = {
+interface CommonKeyObj {
   modifierKey?: ModifierKey;
   normalKey: MergedNormalKey;
-};
+}
 
 type CommonKey =
   /* ------- 'ctrl+shift+b, ctrl+c, d' ------- */
@@ -120,6 +120,15 @@ type CommonKey =
 
 type KeySequenceStr = string;
 
+interface KeySequenceObj extends CommonKeyObj {
+  /**
+   * 距离下一轮热键的间隔时长
+   *
+   * TODO: 描述待完善
+   */
+  interval?: number;
+}
+
 type KeySequence =
   /* ------- 'ctrl+b c a' ------- */
   | KeySequenceStr
@@ -132,7 +141,7 @@ type KeySequence =
       { normalKey: 'a' }
     ]
   */
-  | CommonKeyObj[]
+  | KeySequenceObj[]
   /* 
     [
       { modifierKey: ['ctrl'], normalKey: 'b' }, 
