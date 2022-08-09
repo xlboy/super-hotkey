@@ -9,7 +9,7 @@ const generator = new Generator({
 generator
   .generate([
     {
-      file: resolve(__dirname, '../src/types.ts'),
+      file: resolve(__dirname, '../src/types/hotkey.ts'),
       type: ['CommonKey', 'KeySequence'],
       exportStaticType: false
     }
