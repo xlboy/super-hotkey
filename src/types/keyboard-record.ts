@@ -12,5 +12,5 @@ export type KeyboardRecord = {
   /* 序号、键序列 */
   index: number;
   /* 触发事件时聚焦的元素 */
-  focusEl: EventTarget;
+  focusEl: EventTarget | null;
 };

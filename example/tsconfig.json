@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "isolatedModules": false,
+    "moduleResolution": "Node",
+    "baseUrl": "./",
+    "paths": {
+      "super-hotkey": ["../src/"]
+    }
+  },
+  "include": ["./*.ts"]
+}

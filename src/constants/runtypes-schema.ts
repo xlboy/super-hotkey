@@ -1,4 +1,4 @@
-import { Array, Literal, Record, Static, String, Undefined } from 'runtypes';
+import { Array, Literal, Record, String, Undefined } from 'runtypes';
 
 export const RuntypeSchemaModifierKeyArr = Array(
   Literal('Shift')

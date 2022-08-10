@@ -10,7 +10,9 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "moduleResolution": "Node"
+    "moduleResolution": "Node",
+    "strictPropertyInitialization": false
   },
-  "include": ["./"]
+  "include": ["./"],
+  "exclude": ["./example"]
 }

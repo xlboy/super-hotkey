@@ -1,5 +1,5 @@
 import type { FilterOptions, IPool } from '../types/i-pool';
-import { filter } from '../utils';
+import { filter } from '../utils/filter';
 
 export class Pool<Entity extends object> implements IPool<Entity> {
   private pool: Entity[] = [];
