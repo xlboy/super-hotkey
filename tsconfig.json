@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "target": "ES2015",
     "noEmit": true,
     "pretty": true,
     "lib": ["DOM", "ESNext"],

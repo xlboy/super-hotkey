@@ -1,6 +1,7 @@
 import type { KeyboardKey } from '../types/hotkey';
 import type { IKeyboardRecordPool } from '../types/i-keyboard-record-pool';
 import type { TriggerMode } from '../types/option';
+import { getPressedModifierKeys } from '../utils';
 import { globalThisPolyfill } from '../utils/global-this-polyfill';
 
 /* SuperHotkey的私有属性和方法 */
@@ -43,12 +44,15 @@ export class PrivateSuperHotkey {
       this.keyboardRecordPool.addEntry({
         focusEl: event.target,
         index: this.keyboardRecordPool.size(),
-        key: event.key as KeyboardKey,
+        commonKey: event.key as KeyboardKey,
+        modifierKeys: getPressedModifierKeys(event),
         timestamp: Date.now(),
         triggerMode
       });
-
-      console.log(this.keyboardRecordPool.getData());
     };
+  }
+
+  get lastRecord() {
+    return this.keyboardRecordPool.getData().at(-1);
   }
 }
