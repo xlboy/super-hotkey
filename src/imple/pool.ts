@@ -1,8 +1,8 @@
 import type { FilterOptions, IPool } from '../types/i-pool';
 import { filter } from '../utils';
 
-export class Pool<Entry extends object> implements IPool<Entry> {
-  private pool: Entry[] = [];
+export class Pool<Entity extends object> implements IPool<Entity> {
+  private pool: Entity[] = [];
 
   size(): number {
     return this.pool.length;
@@ -12,23 +12,23 @@ export class Pool<Entry extends object> implements IPool<Entry> {
     this.pool = [];
   }
 
-  addEntry(entry: Entry) {
+  addEntry(entry: Entity) {
     this.pool.push(entry);
   }
 
-  getData(): Entry[] {
+  getData(): Entity[] {
     return this.pool;
   }
 
-  getEntry(conditions: FilterOptions<Entry>): Entry | undefined {
+  getEntry(conditions: FilterOptions<Entity>): Entity | undefined {
     return this.getEntrys(conditions)?.[0];
   }
 
-  getEntrys(conditions: FilterOptions<Entry>): Entry[] {
+  getEntrys(conditions: FilterOptions<Entity>): Entity[] {
     return filter(this.pool, conditions);
   }
 
-  filter(conditions: FilterOptions<Entry> | ((data: Entry) => boolean)): Entry[] {
+  filter(conditions: FilterOptions<Entity> | ((data: Entity) => boolean)): Entity[] {
     if (typeof conditions === 'object') {
       this.pool = this.getEntrys(conditions);
     } else if (typeof conditions === 'function') {
