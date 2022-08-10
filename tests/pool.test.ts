@@ -60,4 +60,27 @@ describe('pool test', () => {
     fillPersonPool(personPool);
     expect(personPool.getEntrys({ age: 20 })).toEqual([personList[1], personList[2]]);
   });
+
+  it('getData test', () => {
+    const personPool = createPersonPool();
+
+    fillPersonPool(personPool);
+    expect(personPool.getData()).toEqual(personList);
+  });
+
+  it('filter options test', () => {
+    const personPool = createPersonPool();
+
+    fillPersonPool(personPool);
+    personPool.filter({ age: 20 });
+    expect(personPool.size()).toBe(2);
+  });
+
+  it('filter function test', () => {
+    const personPool = createPersonPool();
+
+    fillPersonPool(personPool);
+    personPool.filter(m => m.age !== 20);
+    expect(personPool.size()).toBe(1);
+  });
 });
