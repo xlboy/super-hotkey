@@ -1,8 +1,10 @@
-import { KeyboardRecordPool } from './imple/keyboard-record-pool';
 import { SuperHotkey } from './imple/super-hotkey';
 
+export * from './events';
+export * from './types/keyboard-record';
+
 export function createSuperHotkey() {
-  const superHotkey = new SuperHotkey(new KeyboardRecordPool());
+  const superHotkey = new SuperHotkey();
 
   return superHotkey;
 }
