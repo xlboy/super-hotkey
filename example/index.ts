@@ -1,25 +1,24 @@
-import type { KeyboardRecord } from 'super-hotkey';
-import superHotkey, { AddKeyboardRecord } from 'super-hotkey';
+import superHotkey, {
+  type KeyboardRecord,
+  AddKeyboardRecord,
+  KeydownEvent
+} from 'super-hotkey';
 
 const subscribe = document.querySelector('#subscribe');
 const unsubscribe = document.querySelector('#unsubscribe');
-
-let isBind = false;
 
 function addKeyboardRecord(data: KeyboardRecord) {
   console.log('添加了一个新的按键记录', data);
 }
 
 subscribe.addEventListener('click', () => {
-  if (!isBind) {
-    superHotkey.subscribe(AddKeyboardRecord, addKeyboardRecord);
-    isBind = true;
-  }
+  superHotkey.subscribe(AddKeyboardRecord, addKeyboardRecord);
 });
 
 unsubscribe.addEventListener('click', () => {
-  if (isBind) {
-    superHotkey.unsubscribe(AddKeyboardRecord, addKeyboardRecord);
-    isBind = false;
-  }
+  superHotkey.unsubscribe(AddKeyboardRecord, addKeyboardRecord);
+});
+
+superHotkey.subscribe(KeydownEvent, v => {
+  console.log('有一个键盘被按下了', v.key);
 });

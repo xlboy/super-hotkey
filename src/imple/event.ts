@@ -22,7 +22,7 @@ export class Event implements IEvent {
 
     const list = this.subscribes.get(event);
 
-    if (typeof cb === 'function' && list) {
+    if (typeof cb === 'function' && list && !list.includes(cb)) {
       list.push(cb);
     }
   }

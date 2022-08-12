@@ -3,6 +3,6 @@ export interface ICustomEvent<EventData = any> {
   data?: EventData;
 }
 
-export interface CustomEventClass {
-  new (data: any): void;
+export interface CustomEventClass<EventData = any> {
+  new (data: EventData): ICustomEvent<EventData>;
 }

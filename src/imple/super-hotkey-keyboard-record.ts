@@ -1,5 +1,9 @@
 import { KeyboardRecordPool } from './keyboard-record-pool';
 import { AddKeyboardRecord } from '../events';
+import { KeydownEvent } from '../events/keydown';
+import { KeypressEvent } from '../events/keypress';
+import { KeyupEvent } from '../events/keyup';
+import type { CustomEventClass } from '../types/event';
 import type { KeyboardKey } from '../types/hotkey';
 import type { IEvent } from '../types/i-event';
 import type { IKeyboardRecordPool } from '../types/i-keyboard-record-pool';
@@ -14,9 +18,9 @@ export class SuperHotkeyKebordRecord implements ISuperHotkeyKeyboardRecord {
   private event: IEvent;
 
   private events: Record<TriggerMode, (event: KeyboardEvent) => void> = {
-    keydown: this.getAddRecordFunc('keydown'),
-    keypress: this.getAddRecordFunc('keypress'),
-    keyup: this.getAddRecordFunc('keyup')
+    keydown: this.getAddRecordFunc('keydown', KeydownEvent),
+    keypress: this.getAddRecordFunc('keypress', KeypressEvent),
+    keyup: this.getAddRecordFunc('keyup', KeyupEvent)
   };
 
   constructor(_event: IEvent) {
@@ -46,7 +50,10 @@ export class SuperHotkeyKebordRecord implements ISuperHotkeyKeyboardRecord {
   }
 
   /* 添加一条记录 */
-  private getAddRecordFunc(triggerMode: TriggerMode) {
+  private getAddRecordFunc(
+    triggerMode: TriggerMode,
+    EventConstructor: CustomEventClass<KeyboardEvent>
+  ) {
     return (event: KeyboardEvent) => {
       const data: KeyboardRecord = {
         focusEl: event.target,
@@ -57,6 +64,7 @@ export class SuperHotkeyKebordRecord implements ISuperHotkeyKeyboardRecord {
         triggerMode
       };
 
+      this.event.dispatch(new EventConstructor(event));
       this.keyboardRecordPool.addEntry(data);
       this.event.dispatch(new AddKeyboardRecord(data));
     };
