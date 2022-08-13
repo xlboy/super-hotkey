@@ -1,6 +1,6 @@
 export type { EventOptions, DOMActionOptions, TriggerMode };
 
-type TriggerMode = 'keydown' | 'keyup' | 'keypress';
+type TriggerMode = 'keydown' | 'keyup';
 
 interface BaseOptions {
   id?: string;

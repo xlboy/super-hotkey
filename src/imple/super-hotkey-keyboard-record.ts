@@ -1,7 +1,6 @@
 import { KeyboardRecordPool } from './keyboard-record-pool';
 import { AddKeyboardRecord } from '../events';
 import { KeydownEvent } from '../events/keydown';
-import { KeypressEvent } from '../events/keypress';
 import { KeyupEvent } from '../events/keyup';
 import type { CustomEventClass } from '../types/event';
 import type { KeyboardKey } from '../types/hotkey';
@@ -19,7 +18,6 @@ export class SuperHotkeyKebordRecord implements ISuperHotkeyKeyboardRecord {
 
   private events: Record<TriggerMode, (event: KeyboardEvent) => void> = {
     keydown: this.getAddRecordFunc('keydown', KeydownEvent),
-    keypress: this.getAddRecordFunc('keypress', KeypressEvent),
     keyup: this.getAddRecordFunc('keyup', KeyupEvent)
   };
 
@@ -65,6 +63,14 @@ export class SuperHotkeyKebordRecord implements ISuperHotkeyKeyboardRecord {
       };
 
       this.event.dispatch(new EventConstructor(event));
+      if (
+        this.lastRecord &&
+        data.commonKey === this.lastRecord.commonKey &&
+        triggerMode === this.lastRecord.triggerMode
+      ) {
+        return;
+      }
+
       this.keyboardRecordPool.addEntry(data);
       this.event.dispatch(new AddKeyboardRecord(data));
     };
