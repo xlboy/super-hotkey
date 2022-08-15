@@ -27,7 +27,6 @@ interface BaseOptions {
      */
     allowRepeatWhenLongPress: boolean;
   };
-  targetElement?: HTMLDivElement;
   scope?: string;
   /**
    * **`热键级别`**
@@ -44,6 +43,11 @@ interface CallbackOptions extends BaseOptions {
    * 如果返回 `void`（默认值），则由 `autoStopPropagation`、`autoPreventDefault` 属性决定
    */
   callback: (event: KeyboardEvent) => boolean | void;
+
+  /**
+   * 要触发 `callback` 的目标元素
+   */
+  targetElement?: HTMLElement;
   /**
    * **是否自动 `停止事件传播`**
    *
@@ -65,9 +69,22 @@ interface CallbackOptions extends BaseOptions {
 
 interface DOMMethodOptions extends BaseOptions {
   /**
-   * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement#methods
+   * @see https://devejjjjloper.mozilla.org/en-US/docs/Web/API/HTMLElement#methods
    */
   method: 'blur' | 'click' | 'focus';
+  /**
+   * `目标元素`，即 `method` 对应的元素
+   */
+  targetElement: HTMLElement;
+
+  /**
+   * `焦点元素`
+   *
+   * 需聚焦于此元素上，方可触发 `method`
+   *
+   * @default document
+   */
+  focusElement?: HTMLElement;
 
   // TODO: 后面再决定是否要加 autoStopPropagation、autoPreventDefault 等属性
 }
