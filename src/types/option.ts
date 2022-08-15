@@ -1,4 +1,4 @@
-export type { CallbackOptions, DOMActionOptions, TriggerMode };
+export type { CallbackOptions, DOMMethodOptions, TriggerMode };
 
 type TriggerMode = 'keydown' | 'keyup';
 
@@ -63,8 +63,11 @@ interface CallbackOptions extends BaseOptions {
   autoPreventDefault?: boolean;
 }
 
-interface DOMActionOptions extends BaseOptions {
-  action: 'blur' | 'click' | 'focus';
+interface DOMMethodOptions extends BaseOptions {
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement#methods
+   */
+  method: 'blur' | 'click' | 'focus';
 
   // TODO: 后面再决定是否要加 autoStopPropagation、autoPreventDefault 等属性
 }
