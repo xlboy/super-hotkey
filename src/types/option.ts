@@ -1,4 +1,4 @@
-export type { EventOptions, DOMActionOptions, TriggerMode };
+export type { CallbackOptions, DOMActionOptions, TriggerMode };
 
 type TriggerMode = 'keydown' | 'keyup';
 
@@ -37,7 +37,7 @@ interface BaseOptions {
   level?: number;
 }
 
-interface EventOptions extends BaseOptions {
+interface CallbackOptions extends BaseOptions {
   handler: () => void;
   /**
    * **是否自动 `停止事件传播`**
