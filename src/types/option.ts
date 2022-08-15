@@ -38,7 +38,12 @@ interface BaseOptions {
 }
 
 interface CallbackOptions extends BaseOptions {
-  handler: () => void;
+  /**
+   * @returns 是否显式阻止默认行为（事件冒泡、默认操作）。
+   *
+   * 如果返回 `void`（默认值），则由 `autoStopPropagation`、`autoPreventDefault` 属性决定
+   */
+  callback: (event: KeyboardEvent) => boolean | void;
   /**
    * **是否自动 `停止事件传播`**
    *
