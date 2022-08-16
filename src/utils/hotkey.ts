@@ -1,4 +1,4 @@
-import type { DefaultModifierKey } from './constants/keyboard-key';
+import type { DefaultModifierKey } from '../constants/keyboard-key';
 
 export function getPressedModifierKeys(event: KeyboardEvent): DefaultModifierKey[] {
   const pressedModifierKeys: DefaultModifierKey[] = [];

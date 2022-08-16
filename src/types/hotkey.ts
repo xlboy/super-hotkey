@@ -1,6 +1,6 @@
 import type { MergedModifierKey, MergedNormalKey } from '../constants/keyboard-key';
 
-export type { KeyboardKey, CommonKey, CommonKeyObj, KeySequence };
+export type { KeyboardKey, CommonKey, CommonKeyObj, KeySequence, KeySequenceObj };
 
 // type NormalKeyStr = MergedNormalKey | (string & {});
 // type NormalKeyArr = MergedNormalKey[];
@@ -16,11 +16,12 @@ type ModifierKey =
   /* ------- ['ctrl', 'shift', 'alt'] ------- */
   | ModifierKeyArr;
 
-type CommonKeyStr = string;
+type CommonKeyStr = KeyboardKey | (string & {});
 
 interface CommonKeyObj {
   modifierKey?: ModifierKey;
   normalKey: MergedNormalKey;
+  longPressTime?: number;
 }
 
 type CommonKey =
@@ -38,7 +39,7 @@ type CommonKey =
   */
   | CommonKeyObj[];
 
-type KeySequenceStr = string;
+type KeySequenceStr = KeyboardKey | (string & {});
 
 interface KeySequenceObj extends CommonKeyObj {
   /**
