@@ -63,6 +63,9 @@ export interface SuperHotkey {
   // TODO: 卸载后的返回值还需待确认。（throw？或是返回已成功卸载的某些热键值？或是返回 true，代表着全部卸载成功？）
   // TODO: 重载还需进一步重写
 
+  /**
+   * 不传参数则默认为「卸载所有热键」
+   */
   unbind(): void;
   unbind(
     hotkey: PolymorphicHotkeyParams,

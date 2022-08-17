@@ -1,6 +1,6 @@
 import type { PartialDeep } from 'type-fest';
 
-import { hotkeyInfoPool } from './data-pool/hotkey-info-poll';
+import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
 import type { ObserveParams } from './keypress-observer';
 import { keypressObserver } from './keypress-observer';
 import type { ExtractFunctionFromPolymorphicType } from './types/base';
@@ -18,32 +18,33 @@ const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotk
   (hotkey, featureOptions) => {
     const unifiedHotkeys = convertPolymorphicHotkeyToUnified(hotkey);
 
-    // TODO: 需要判断一下传入的 ID 是否有重复，有的话则 throw 告知
-    const addSuccessfulHotkeyID = hotkeyInfoPool.add({
+    // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
+    const addSuccessfulHotkeyId = hotkeyConfigPool.add({
       hotkeys: unifiedHotkeys,
       feature: featureOptions
     });
 
-    if (addSuccessfulHotkeyID) {
+    if (addSuccessfulHotkeyId) {
+      const keypressObserveParams: Omit<ObserveParams, 'targetElement'> = {
+        eventType: featureOptions.options.trigger?.mode || 'keydown',
+        hotkeyId: addSuccessfulHotkeyId,
+        capture: featureOptions.options.trigger?.capture || false
+      };
+
+      let targetElement!: ObserveParams['targetElement'];
+
       if (featureOptions.type === 'callback') {
-        const keypressObserveParams: ObserveParams = {
-          targetElement: featureOptions.options.targetElement || globalThisPolyfill,
-          eventType: featureOptions.options.trigger?.mode || 'keydown',
-          hotkeyID: addSuccessfulHotkeyID
-        };
-
-        keypressObserver.observe(keypressObserveParams);
+        targetElement = featureOptions.options.targetElement || globalThisPolyfill;
       } else if (featureOptions.type === 'domMethod') {
-        const keypressObserveParams: ObserveParams = {
-          targetElement: featureOptions.options.focusElement || globalThisPolyfill,
-          eventType: featureOptions.options.trigger?.mode || 'keydown',
-          hotkeyID: addSuccessfulHotkeyID
-        };
-
-        keypressObserver.observe(keypressObserveParams);
+        targetElement = featureOptions.options.focusElement || globalThisPolyfill;
       }
+
+      keypressObserver.observe({
+        ...keypressObserveParams,
+        targetElement
+      });
     } else {
-      throw new Error('添加失败，因 ID 重复');
+      throw new Error('添加失败，因 Id 重复');
     }
   }
 ) as unknown as SuperHotkey;
@@ -62,16 +63,29 @@ superHotkey.bindDOMMethod = (hotkey, options) => {
   });
 };
 
-superHotkey.unbind = (...args: [PolymorphicHotkeyParams?, UnbindFeatureCondition?]) => {
-  // hotkeyController.uninstall(hotkey);
+superHotkey.unbind = (
+  ...args:
+    | []
+    | [hotkey: PolymorphicHotkeyParams, featureCondition?: UnbindFeatureCondition]
+) => {
+  const defaultUnbindAll = args.length === 0;
+
+  if (defaultUnbindAll) {
+    hotkeyConfigPool.clear();
+  } else {
+    const [hotkey, featureCondition] = args;
+    const unifiedHotkeys = convertPolymorphicHotkeyToUnified(hotkey);
+  }
 };
 
 superHotkey.unbindDOMMethod = (
-  ...args: [] | [PolymorphicHotkeyParams, PartialDeep<DOMMethodOptions>?]
+  ...args:
+    | []
+    | [hotkey: PolymorphicHotkeyParams, condition?: PartialDeep<DOMMethodOptions>]
 ) => {
-  const isDefaultUnbindAll = args.length === 0;
+  const defaultUnbindAll = args.length === 0;
 
-  if (isDefaultUnbindAll) {
+  if (defaultUnbindAll) {
     superHotkey.unbind();
   } else {
     const [hotkey, conditions] = args;
@@ -84,11 +98,13 @@ superHotkey.unbindDOMMethod = (
 };
 
 superHotkey.unbindCallback = (
-  ...args: [] | [PolymorphicHotkeyParams, PartialDeep<CallbackOptions>?]
+  ...args:
+    | []
+    | [hotkey: PolymorphicHotkeyParams, condition?: PartialDeep<CallbackOptions>]
 ) => {
-  const isDefaultUnbindAll = args.length === 0;
+  const defaultUnbindAll = args.length === 0;
 
-  if (isDefaultUnbindAll) {
+  if (defaultUnbindAll) {
     superHotkey.unbind();
   } else {
     const [hotkey, conditions] = args;

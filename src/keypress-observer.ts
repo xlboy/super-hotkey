@@ -1,23 +1,23 @@
 import type { F } from 'ts-toolbelt';
 
 import type { DefaultNormalKey } from './constants/keyboard-key';
-import type { HotkeyInfo } from './data-pool/hotkey-info-poll';
+import type { HotkeyConfig } from './data-pool/hotkey-config-poll';
 import { keypressRecordPool } from './data-pool/keypress-record-poll';
 import type { TriggerMode } from './types/option';
 import { getPressedModifierKeys } from './utils/hotkey';
 
 export interface ObserveParams {
-  hotkeyID: HotkeyInfo['id'];
+  hotkeyId: HotkeyConfig['id'];
   targetElement: HTMLElement | Window;
   eventType: TriggerMode;
   capture?: boolean;
 }
 
 class KeypressObserver {
-  private hotkeyIDListenerMap: Record<HotkeyInfo['id'], F.Function> = {};
+  private hotkeyIdListenerMap: Record<HotkeyConfig['id'], F.Function> = {};
 
   observe(params: ObserveParams) {
-    const { capture, eventType, targetElement, hotkeyID } = params;
+    const { capture, eventType, targetElement, hotkeyId } = params;
 
     const listener = (event: KeyboardEvent) => {
       keypressRecordPool.add({
@@ -31,15 +31,15 @@ class KeypressObserver {
 
     targetElement.addEventListener(eventType, listener as any, capture);
 
-    this.hotkeyIDListenerMap[hotkeyID] = listener;
+    this.hotkeyIdListenerMap[hotkeyId] = listener;
   }
 
   stopObserve(params: ObserveParams) {
-    const { capture, eventType, targetElement, hotkeyID } = params;
+    const { capture, eventType, targetElement, hotkeyId } = params;
 
     targetElement.removeEventListener(
       eventType,
-      this.hotkeyIDListenerMap[hotkeyID],
+      this.hotkeyIdListenerMap[hotkeyId],
       capture
     );
   }
