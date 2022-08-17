@@ -25,7 +25,7 @@ interface BaseOptions {
      * When the hotkey is in the `long-press` state, repeated trigger is allowed
      * @default true
      */
-    allowRepeatWhenLongPress: boolean;
+    allowRepeatWhenLongPress?: boolean;
   };
   scope?: string;
   /**
