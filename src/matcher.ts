@@ -1,3 +1,5 @@
-export {};
+class Matcher {
+  public match() {}
+}
 
-class Matcher {}
+export const matcher = new Matcher();

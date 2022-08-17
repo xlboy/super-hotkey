@@ -1,4 +1,4 @@
-import type { F } from 'ts-toolbelt';
+import type { PartialDeep } from 'type-fest';
 
 import type { CommonKey, KeySequence, KeySequenceObj } from './hotkey';
 import type { CallbackOptions, DOMMethodOptions } from './option';
@@ -42,35 +42,48 @@ export type HotkeyFeatureType = UniformFeature['type'];
 
 export type PolymorphicHotkeyParams = CommonKey | KeySequence;
 
+export type UnbindFeatureCondition =
+  | {
+      type: 'domMethod';
+      options?: PartialDeep<DOMMethodOptions>;
+    }
+  | {
+      type: 'callback';
+      options?: PartialDeep<CallbackOptions>;
+    };
+
 export interface SuperHotkey {
-  (hotkey: PolymorphicHotkeyParams, options: UniformFeature): void;
+  (hotkey: PolymorphicHotkeyParams, featureOptions: UniformFeature): void;
 
   // TODO: 其他 API 待完善
 
   bindDOMMethod(hotkey: PolymorphicHotkeyParams, options: DOMMethodOptions): void;
   bindCallback(hotkey: PolymorphicHotkeyParams, options: CallbackOptions): void;
 
+  // TODO: 卸载后的返回值还需待确认。（throw？或是返回已成功卸载的某些热键值？或是返回 true，代表着全部卸载成功？）
+  // TODO: 重载还需进一步重写
+
+  unbind(): void;
   unbind(
     hotkey: PolymorphicHotkeyParams,
-    options?:
-      | ({
-          featureType: 'domMethod';
-        } & Partial<Pick<DOMMethodOptions, 'focusElement'>>)
-      | {
-          featureType: 'callback';
-          callback?: F.Function;
-        }
+    featureCondition?: UnbindFeatureCondition
   ): void;
 
-  // TODO: 卸载后的返回值还需待确认。（throw？或是返回已成功卸载的某些热键值？或是返回 true，代表着全部卸载成功？）
+  /**
+   * 不传参数则默认为「卸载所有与 `domMethod` 相关的热键」
+   */
+  unbindDOMMethod(): void;
   unbindDOMMethod(
     hotkey: PolymorphicHotkeyParams,
-    options?: Partial<Pick<DOMMethodOptions, 'focusElement'>>
+    condition?: PartialDeep<DOMMethodOptions>
   ): void;
+
+  /**
+   * 不传参数则默认为「卸载所有与 `callback` 相关的热键」
+   */
+  unbindCallback(): void;
   unbindCallback(
     hotkey: PolymorphicHotkeyParams,
-    options: {
-      callback?: F.Function;
-    }
+    conditions: PartialDeep<CallbackOptions>
   ): void;
 }
