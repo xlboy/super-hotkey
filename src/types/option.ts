@@ -1,4 +1,4 @@
-export type { CallbackOptions, DOMMethodOptions, TriggerMode };
+export type { CallbackOptions, DOMMethodOptions, TriggerMode, BaseOptions };
 
 type TriggerMode = 'keydown' | 'keyup';
 
@@ -67,6 +67,7 @@ interface CallbackOptions extends BaseOptions {
   autoPreventDefault?: boolean;
 }
 
+document.querySelector;
 interface DOMMethodOptions extends BaseOptions {
   /**
    * @see https://devejjjjloper.mozilla.org/en-US/docs/Web/API/HTMLElement#methods
@@ -75,7 +76,7 @@ interface DOMMethodOptions extends BaseOptions {
   /**
    * `目标元素`，即 `method` 对应的元素
    */
-  targetElement: HTMLElement;
+  targetElement: HTMLElement | /* query-selector-value */ string;
 
   /**
    * `焦点元素`

@@ -2,9 +2,11 @@ import type { F } from 'ts-toolbelt';
 
 import type { DefaultNormalKey } from './constants/keyboard-key';
 import type { HotkeyConfig } from './data-pool/hotkey-config-poll';
+import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
 import { keypressRecordPool } from './data-pool/keypress-record-poll';
+import type { UnifiedFeature } from './types/entrance';
 import type { TriggerMode } from './types/option';
-import { getPressedModifierKeys } from './utils/hotkey';
+import { getPressedModifierKeys, globalThisPolyfill } from './utils/base';
 
 export interface ObserveParams {
   hotkeyId: HotkeyConfig['id'];
@@ -14,34 +16,60 @@ export interface ObserveParams {
 }
 
 class KeypressObserver {
-  private hotkeyIdListenerMap: Record<HotkeyConfig['id'], F.Function> = {};
+  private hotkeyIdListenerMap: Record<ObserveParams['hotkeyId'], F.Function> = {};
 
-  observe(params: ObserveParams) {
-    const { capture, eventType, targetElement, hotkeyId } = params;
+  observeByHotkeyId(hotkeyId: HotkeyConfig['id']) {
+    const { feature } = hotkeyConfigPool.findById(hotkeyId)!;
+    const targetElement = this.filterTargetElementToObserve(feature as UnifiedFeature);
+    const triggerOptions = feature.options.trigger!;
 
     const listener = (event: KeyboardEvent) => {
       keypressRecordPool.add({
-        eventType: params.eventType,
-        focusElment: event.target,
+        // TODO: 类型待完善，实际上在入库前，肯定是有默认值的
+        triggerMode: triggerOptions.mode!,
+        focusElment: event.target || event.srcElement,
         normalKey: event.key as DefaultNormalKey,
         modifierKeys: getPressedModifierKeys(event),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        hotkeyId,
+        event
       });
     };
 
-    targetElement.addEventListener(eventType, listener as any, capture);
+    targetElement.addEventListener(
+      triggerOptions.mode!,
+      listener as any,
+      triggerOptions.capture
+    );
 
     this.hotkeyIdListenerMap[hotkeyId] = listener;
   }
 
-  stopObserve(params: ObserveParams) {
-    const { capture, eventType, targetElement, hotkeyId } = params;
+  stopObserveByHotkeyId(hotkeyId: HotkeyConfig['id']) {
+    const { feature } = hotkeyConfigPool.findById(hotkeyId)!;
+    const targetElement = this.filterTargetElementToObserve(feature as UnifiedFeature);
+    const triggerOptions = feature.options.trigger!;
 
     targetElement.removeEventListener(
-      eventType,
+      triggerOptions.mode!,
       this.hotkeyIdListenerMap[hotkeyId],
-      capture
+      triggerOptions.capture!
     );
+
+    delete this.hotkeyIdListenerMap[hotkeyId];
+    keypressRecordPool.removeByHotkeyId(hotkeyId);
+  }
+
+  private filterTargetElementToObserve(featureOption: UnifiedFeature) {
+    let targetElement!: ObserveParams['targetElement'];
+
+    if (featureOption.type === 'callback') {
+      targetElement = featureOption.options.targetElement || globalThisPolyfill;
+    } else {
+      targetElement = featureOption.options.focusElement || globalThisPolyfill;
+    }
+
+    return targetElement;
   }
 }
 

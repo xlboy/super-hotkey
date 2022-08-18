@@ -1,11 +1,11 @@
-import { filter, isEqual } from 'lodash-es';
+import { filter } from 'lodash-es';
 import { nanoid } from 'nanoid';
-import type { PartialDeep, ReadonlyDeep } from 'type-fest';
+import type { ReadonlyDeep } from 'type-fest';
 
 import type {
   UnbindFeatureCondition,
-  UnifiedHotkey,
-  UniformFeature
+  UnifiedFeature,
+  UnifiedHotkey
 } from '../types/entrance';
 
 // 暂不分
@@ -23,7 +23,7 @@ import type {
 export interface HotkeyConfig {
   id: string;
   hotkeys: UnifiedHotkey[];
-  feature: UniformFeature;
+  feature: UnifiedFeature;
 }
 
 class HotkeyConfigPool {
@@ -47,12 +47,18 @@ class HotkeyConfigPool {
     return hotkeyId;
   }
 
-  public remove(hotkey: UnifiedHotkey): void {}
+  public removeById(hotkeyId: HotkeyConfig['id']): void {
+    const indexToRemove = this.hotkeyConfigs.findIndex(config => config.id === hotkeyId);
+
+    if (indexToRemove !== -1) {
+      this.hotkeyConfigs.splice(indexToRemove, 1);
+    }
+  }
 
   public findById(id: HotkeyConfig['id']): ReadonlyDeep<HotkeyConfig> | undefined {
     const foundHotkeyConfig = this.hotkeyConfigs.find(config => config.id === id);
 
-    return foundHotkeyConfig as any;
+    return foundHotkeyConfig as ReadonlyDeep<HotkeyConfig> | undefined;
   }
 
   public update() {}

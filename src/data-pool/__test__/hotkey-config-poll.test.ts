@@ -3,7 +3,7 @@ import type { PartialDeep } from 'type-fest';
 import type { HotkeyConfig } from '../hotkey-config-poll';
 import { hotkeyConfigPool } from '../hotkey-config-poll';
 
-it('测试 clear', () => {
+it('测试 add、clear', () => {
   // 局部调试时，需提前清空
   hotkeyConfigPool.clear();
   const hotkeyConfig: HotkeyConfig = {
@@ -16,6 +16,8 @@ it('测试 clear', () => {
     hotkeys: [],
     id: 'index-1'
   };
+
+  expect(hotkeyConfigPool.size()).toBe(0);
 
   hotkeyConfigPool.add(hotkeyConfig);
   expect(hotkeyConfigPool.size()).toBe(1);

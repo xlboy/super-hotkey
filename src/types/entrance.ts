@@ -26,19 +26,19 @@ export type UnifiedHotkey = UnifiedCommonKey | UnifiedKeySequence;
 
 export type HotkeyKeyType = UnifiedHotkey['type'];
 
-type FeatureDOMMethod = {
+export type FeatureDOMMethod = {
   type: 'domMethod';
   options: DOMMethodOptions;
 };
 
-type FeatureCallback = {
+export type FeatureCallback = {
   type: 'callback';
   options: CallbackOptions;
 };
 
-export type UniformFeature = FeatureDOMMethod | FeatureCallback;
+export type UnifiedFeature = FeatureDOMMethod | FeatureCallback;
 
-export type HotkeyFeatureType = UniformFeature['type'];
+export type HotkeyFeatureType = UnifiedFeature['type'];
 
 export type PolymorphicHotkeyParams = CommonKey | KeySequence;
 
@@ -53,7 +53,7 @@ export type UnbindFeatureCondition =
     };
 
 export interface SuperHotkey {
-  (hotkey: PolymorphicHotkeyParams, featureOptions: UniformFeature): void;
+  (hotkey: PolymorphicHotkeyParams, featureOption: UnifiedFeature): void;
 
   // TODO: 其他 API 待完善
 

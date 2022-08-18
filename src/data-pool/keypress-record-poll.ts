@@ -1,3 +1,4 @@
+import type { HotkeyConfig } from './hotkey-config-poll';
 import type { DefaultModifierKey, DefaultNormalKey } from '../constants/keyboard-key';
 import type { TriggerMode } from '../types/option';
 
@@ -6,7 +7,9 @@ type KeypressRecord = {
   normalKey: DefaultNormalKey;
   modifierKeys: DefaultModifierKey[];
   focusElment: EventTarget | null;
-  eventType: TriggerMode;
+  triggerMode: TriggerMode;
+  hotkeyId: HotkeyConfig['id'];
+  event: KeyboardEvent;
 };
 
 class KeypressRecordPool {
@@ -20,11 +23,17 @@ class KeypressRecordPool {
     this.keypressRecords.push(keypressRecord);
   }
 
-  public remove(/* 删除条件待定 */): void {}
+  public removeByHotkeyId(hotkeyId: KeypressRecord['hotkeyId']): void {
+    const indexToRemove = this.keypressRecords.findIndex(
+      record => record.hotkeyId === hotkeyId
+    );
+
+    if (indexToRemove !== -1) {
+      this.keypressRecords.splice(indexToRemove, 1);
+    }
+  }
 
   public find(/* 查询条件待定 */) {}
-
-  public update() {}
 }
 
 export const keypressRecordPool = new KeypressRecordPool();

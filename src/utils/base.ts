@@ -1,3 +1,5 @@
+import type { DefaultModifierKey } from '../constants/keyboard-key';
+
 /**
  * @see https://github.com/alibaba/designable/blob/main/packages/shared/src/globalThisPolyfill.ts
  * @returns
@@ -25,3 +27,25 @@ function getGlobalThis() {
 }
 
 export const globalThisPolyfill: Window = getGlobalThis();
+
+export function getPressedModifierKeys(event: KeyboardEvent): DefaultModifierKey[] {
+  const pressedModifierKeys: DefaultModifierKey[] = [];
+
+  if (event.ctrlKey) {
+    pressedModifierKeys.push('Control');
+  }
+
+  if (event.altKey) {
+    pressedModifierKeys.push('Alt');
+  }
+
+  if (event.metaKey) {
+    pressedModifierKeys.push('Meta');
+  }
+
+  if (event.shiftKey) {
+    pressedModifierKeys.push('Shift');
+  }
+
+  return pressedModifierKeys;
+}
