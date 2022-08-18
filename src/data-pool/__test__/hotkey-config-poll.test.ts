@@ -26,8 +26,6 @@ it('测试 clear', () => {
 
 describe('测试 getQualifiedHotkeyIds', () => {
   describe('通过 callback 引用来搜集合格的 hotkey-id', () => {
-    hotkeyConfigPool.clear();
-
     const callback = () => {};
 
     const hotkeyConfig: PartialDeep<HotkeyConfig> = {
@@ -40,6 +38,7 @@ describe('测试 getQualifiedHotkeyIds', () => {
     };
 
     it('正确的 callbakc 引用测试', () => {
+      hotkeyConfigPool.clear();
       const addSuccessfulHotkeyId = hotkeyConfigPool.add(hotkeyConfig as any);
 
       expect(
@@ -55,6 +54,7 @@ describe('测试 getQualifiedHotkeyIds', () => {
     });
 
     it('错误的 callback 引用测试', () => {
+      hotkeyConfigPool.clear();
       hotkeyConfigPool.add(hotkeyConfig as any);
 
       expect(
