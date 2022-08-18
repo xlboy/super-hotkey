@@ -6,10 +6,9 @@ type KeypressRecord = {
   timestamp: number;
   normalKey: DefaultNormalKey;
   modifierKeys: DefaultModifierKey[];
-  focusElment: EventTarget | null;
+  focusElement: EventTarget | null;
   triggerMode: TriggerMode;
   hotkeyId: HotkeyConfig['id'];
-  event: KeyboardEvent;
 };
 
 class KeypressRecordPool {

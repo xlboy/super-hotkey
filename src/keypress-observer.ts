@@ -4,6 +4,7 @@ import type { DefaultNormalKey } from './constants/keyboard-key';
 import type { HotkeyConfig } from './data-pool/hotkey-config-poll';
 import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
 import { keypressRecordPool } from './data-pool/keypress-record-poll';
+import { matcher } from './matcher';
 import type { UnifiedFeature } from './types/entrance';
 import type { TriggerMode } from './types/option';
 import { getPressedModifierKeys, globalThisPolyfill } from './utils/base';
@@ -27,12 +28,11 @@ class KeypressObserver {
       keypressRecordPool.add({
         // TODO: 类型待完善，实际上在入库前，肯定是有默认值的
         triggerMode: triggerOptions.mode!,
-        focusElment: event.target || event.srcElement,
+        focusElement: event.target || event.srcElement,
         normalKey: event.key as DefaultNormalKey,
         modifierKeys: getPressedModifierKeys(event),
         timestamp: Date.now(),
-        hotkeyId,
-        event
+        hotkeyId
       });
     };
 
