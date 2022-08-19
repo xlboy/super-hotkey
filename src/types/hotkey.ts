@@ -21,7 +21,13 @@ type CommonKeyStr = KeyboardKey | (string & {});
 interface CommonKeyObj {
   modifierKey?: ModifierKey;
   normalKey: MergedNormalKey;
-  longPressTime?: number;
+  /**
+   * 长按时长
+   * 开启后，不可设置 `trigger-mode`
+   *
+   * @default false
+   */
+  longPressTime?: number | false;
 }
 
 type CommonKey =
@@ -46,8 +52,9 @@ interface KeySequenceObj extends CommonKeyObj {
    * 距离下一轮热键的间隔时长
    *
    * TODO: 描述待完善
+   * @default 'infinite'
    */
-  interval?: number;
+  interval?: number | 'infinite';
 }
 
 type KeySequence =

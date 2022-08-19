@@ -26,6 +26,13 @@ interface BaseOptions {
      * @default true
      */
     allowRepeatWhenLongPress?: boolean;
+
+    /**
+     * 是长按类型的热键
+     *
+     * @default false
+     */
+    isLongPress?: boolean;
   };
   scope?: string;
   /**

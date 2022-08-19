@@ -11,6 +11,7 @@ import type {
   UnbindFeatureCondition
 } from './types/entrance';
 import type { CallbackOptions, DOMMethodOptions } from './types/option';
+import { filterTargetElementToObserve } from './utils/base';
 import { convertPolymorphicHotkeyToUnified } from './utils/transform';
 
 const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotkey>>()(
@@ -21,7 +22,7 @@ const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotk
 
     // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
     const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      hotkeys: unifiedHotkeys,
+      keyCombinations: unifiedHotkeys,
       feature: featureOption
     });
 
@@ -52,22 +53,27 @@ superHotkey.unbind = (
     | []
     | [hotkey: PolymorphicHotkeyParams, featureCondition?: UnbindFeatureCondition]
 ) => {
-  const defaultUnbindAll = args.length === 0;
+  const defaultAllUnbind = args.length === 0;
 
-  if (defaultUnbindAll) {
+  if (defaultAllUnbind) {
     hotkeyConfigPool.clear();
   } else {
     const [hotkey, featureCondition] = args;
     const unifiedHotkeys = convertPolymorphicHotkeyToUnified(hotkey);
 
-    const hotkeyIdsToUnbind = hotkeyConfigPool.getQualifiedHotkeyIds({
-      hotkeys: unifiedHotkeys,
-      featureCondition
+    // 从热键配置池中删除
+    const completelyRemoveConfigs = hotkeyConfigPool.remove({
+      featureCondition,
+      hotkeys: unifiedHotkeys
     });
 
-    hotkeyIdsToUnbind.forEach(hotkeyId => {
-      keypressObserver.stopObserveByHotkeyId(hotkeyId);
-      hotkeyConfigPool.removeById(hotkeyId);
+    // 再根据热键池中可能整个删掉的配置来取消按键监听
+    completelyRemoveConfigs.forEach(removedConfig => {
+      keypressObserver.stopObserve({
+        hotkeyId: removedConfig.id,
+        targetElement: filterTargetElementToObserve(removedConfig.feature),
+        triggerOptions: removedConfig.feature.options.trigger
+      });
     });
   }
 };
@@ -77,9 +83,9 @@ superHotkey.unbindDOMMethod = (
     | []
     | [hotkey: PolymorphicHotkeyParams, condition?: PartialDeep<DOMMethodOptions>]
 ) => {
-  const defaultUnbindAll = args.length === 0;
+  const defaultAllUnbind = args.length === 0;
 
-  if (defaultUnbindAll) {
+  if (defaultAllUnbind) {
     superHotkey.unbind();
   } else {
     const [hotkey, conditions] = args;
@@ -96,9 +102,9 @@ superHotkey.unbindCallback = (
     | []
     | [hotkey: PolymorphicHotkeyParams, condition?: PartialDeep<CallbackOptions>]
 ) => {
-  const defaultUnbindAll = args.length === 0;
+  const defaultAllUnbind = args.length === 0;
 
-  if (defaultUnbindAll) {
+  if (defaultAllUnbind) {
     superHotkey.unbind();
   } else {
     const [hotkey, conditions] = args;

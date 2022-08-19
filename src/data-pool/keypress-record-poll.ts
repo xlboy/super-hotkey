@@ -2,14 +2,15 @@ import type { HotkeyConfig } from './hotkey-config-poll';
 import type { DefaultModifierKey, DefaultNormalKey } from '../constants/keyboard-key';
 import type { TriggerMode } from '../types/option';
 
-type KeypressRecord = {
-  timestamp: number;
+export interface KeypressRecord {
+  timeStamp: number;
   normalKey: DefaultNormalKey;
   modifierKeys: DefaultModifierKey[];
-  focusElement: EventTarget | null;
+  focusElement: EventTarget;
   triggerMode: TriggerMode;
   hotkeyId: HotkeyConfig['id'];
-};
+  isLongPressHotkey: boolean;
+}
 
 class KeypressRecordPool {
   private keypressRecords: KeypressRecord[] = [];

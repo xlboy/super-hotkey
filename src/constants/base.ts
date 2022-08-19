@@ -4,5 +4,6 @@ export const defaultTriggerOptions: BaseOptions['trigger'] = {
   allowRepeatWhenLongPress: true,
   throttleDelay: 0,
   capture: false,
-  mode: 'keydown'
+  mode: 'keydown',
+  isLongPress: false
 };
