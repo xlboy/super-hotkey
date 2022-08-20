@@ -1,18 +1,16 @@
 import type { MergedModifierKey, MergedNormalKey } from './constants/keyboard-key';
+import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
 import type { KeypressRecord } from './data-pool/keypress-record-poll';
 
-interface KeyComb {
+export interface KeyCombination {
   modifierKeys: MergedModifierKey[];
   normalKey: MergedNormalKey;
   timeStamp: number;
 }
 
 class Matcher {
-  // private historyKeypress
-
-  // private activeKeySequenceGroup: Array<{}> = [];
-
-  private focusElementKeyCombMap: WeakMap<EventTarget, Array<KeyComb>> = new WeakMap();
+  private targetElKeyCombinationMap: WeakMap<EventTarget, Array<KeyCombination>> =
+    new WeakMap();
 
   public match(
     event: KeyboardEvent,
@@ -22,21 +20,26 @@ class Matcher {
     if (isLongPressHotkey) {
       this.longPressHandler;
     } else {
-      const { focusElement, modifierKeys, normalKey, timeStamp } = keypressRecord;
+      const { modifierKeys, normalKey, timeStamp, targetElement } = keypressRecord;
 
-      this.focusElementKeyCombMap.set(
-        focusElement,
-        (this.focusElementKeyCombMap.get(focusElement) || []).concat({
+      this.targetElKeyCombinationMap.set(
+        targetElement,
+        (this.targetElKeyCombinationMap.get(targetElement) || []).concat({
           modifierKeys,
           normalKey,
           timeStamp
         })
       );
 
-      const lastTwoKeyComb = [
-        this.focusElementKeyCombMap.get(focusElement)!.at(-2),
-        this.focusElementKeyCombMap.get(focusElement)!.at(-1)
-      ];
+      const lastTwoKeyCombinations = [
+        this.targetElKeyCombinationMap.get(targetElement)!.at(-2),
+        this.targetElKeyCombinationMap.get(targetElement)!.at(-1)!
+      ] as const;
+
+      const suitedHotkeyConfig =
+        hotkeyConfigPool.utils.getSuitedHotkeyConfig(lastTwoKeyCombinations);
+
+      console.log('suitedHotkeyConfig', suitedHotkeyConfig);
     }
   }
 

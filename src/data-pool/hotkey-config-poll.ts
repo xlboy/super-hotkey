@@ -1,12 +1,14 @@
-import { filter, isEqual } from 'lodash-es';
+import { filter, isEqual, pick } from 'lodash-es';
 import { nanoid } from 'nanoid';
 import type { ReadonlyDeep } from 'type-fest';
 
 import type { KeypressRecord } from './keypress-record-poll';
+import type { KeyCombination } from '../matcher';
 import type {
   UnbindFeatureCondition,
   UnifiedFeature,
-  UnifiedHotkey
+  UnifiedHotkey,
+  UnifiedKeySequence
 } from '../types/entrance';
 
 // 暂不分
@@ -133,11 +135,85 @@ class HotkeyConfigPool {
   public update() {}
 
   public get utils() {
-    return {};
+    return {
+      getSuitedHotkeyConfig: getSuitedHotkeyConfig.bind(this)
+    };
 
-    function getSuitedHotkeyBySingleKeypress(
-      singleKeypressInfo: Pick<KeypressRecord, 'focusElement'>
-    ) {}
+    interface SuitedHotkeyConfig {
+      common: HotkeyConfig[];
+      sequence: HotkeyConfig[];
+    }
+
+    function getSuitedHotkeyConfig(
+      this: HotkeyConfigPool,
+      lastTwoKeyCombinations: readonly [KeyCombination | undefined, KeyCombination]
+    ): SuitedHotkeyConfig {
+      const suitedHotkeyConfig: SuitedHotkeyConfig = {
+        common: [],
+        sequence: []
+      };
+
+      this.hotkeyConfigs.forEach(config => {
+        config.keyCombinations.forEach(keyCombConfig => {
+          if (keyCombConfig.type === 'common') {
+            // 是 common 类型的键，且此次按下的键与配置中的键相符，即达标
+            const [, lastOneKeyComb] = lastTwoKeyCombinations;
+
+            if (isKeyCombEqual(lastOneKeyComb, keyCombConfig)) {
+              suitedHotkeyConfig.common.push(config);
+            }
+          } else {
+            const [penultimateKeyComb, lastOneKeyComb] = lastTwoKeyCombinations;
+
+            // 没有倒数第二组键，则不匹配 「键序列」 相关的键
+            if (!penultimateKeyComb) {
+              return;
+            }
+
+            sequenceFor: for (let i = 0; i < keyCombConfig.sequenceGroup.length; i++) {
+              const currentSequenceKeyComb = keyCombConfig.sequenceGroup[i];
+
+              const nextSequenceKeyComb = keyCombConfig.sequenceGroup[i + 1] as
+                | undefined
+                | UnifiedKeySequence['sequenceGroup'][number];
+
+              // 两组键 是否与 键序列配置中的键 相同
+              // ---
+              // 判断 第一组键
+              if (isKeyCombEqual(penultimateKeyComb, currentSequenceKeyComb)) {
+                // 判断 第二组键，前提为「键序列配置」中有下一组
+                if (
+                  nextSequenceKeyComb &&
+                  isKeyCombEqual(lastOneKeyComb, nextSequenceKeyComb)
+                ) {
+                  // 第一组键 与 第二组键 的按下间隔是否达到「键序列配置」中的要求
+                  const effectiveInterval =
+                    /* 单组键的间隔要求 */ currentSequenceKeyComb.interval! >=
+                    /* 倒数第一组键的按下时间 */ lastOneKeyComb.timeStamp -
+                      /* 倒数第二组键的按下时间 */ penultimateKeyComb.timeStamp;
+
+                  if (effectiveInterval) {
+                    suitedHotkeyConfig.sequence.push(config);
+                    // 找到了理想的键序列配置，则结束
+                    break sequenceFor;
+                  }
+                }
+              }
+            }
+          }
+        });
+      });
+
+      return suitedHotkeyConfig;
+
+      type T = Partial<Pick<KeyCombination, 'modifierKeys' | 'normalKey'>>;
+      function isKeyCombEqual(aKeyComb: T, bKeyComb: T) {
+        return isEqual(
+          pick(aKeyComb, ['modifierKeys', 'normalKey']),
+          pick(bKeyComb, ['modifierKeys', 'normalKey'])
+        );
+      }
+    }
   }
 }
 

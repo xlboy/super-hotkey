@@ -6,10 +6,9 @@ export interface KeypressRecord {
   timeStamp: number;
   normalKey: DefaultNormalKey;
   modifierKeys: DefaultModifierKey[];
-  focusElement: EventTarget;
+  targetElement: HTMLElement | Window;
   triggerMode: TriggerMode;
   hotkeyId: HotkeyConfig['id'];
-  isLongPressHotkey: boolean;
 }
 
 class KeypressRecordPool {

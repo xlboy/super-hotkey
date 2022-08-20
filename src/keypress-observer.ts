@@ -90,12 +90,11 @@ class KeypressObserver {
       return (event: KeyboardEvent) => {
         const latestKeypressRecord: KeypressRecord = {
           triggerMode,
-          focusElement: event.target! || event.srcElement,
+          targetElement,
           normalKey: event.key as DefaultNormalKey,
           modifierKeys: getPressedModifierKeys(event),
           timeStamp: Date.now(),
-          hotkeyId,
-          isLongPressHotkey
+          hotkeyId
         };
 
         matcher.match(event, isLongPressHotkey, latestKeypressRecord);

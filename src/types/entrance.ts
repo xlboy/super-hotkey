@@ -8,7 +8,7 @@ export type UnifiedCommonKey = {
   type: 'common';
   modifierKeys: MergedModifierKey[];
   normalKey: MergedNormalKey;
-  longPressTime: number;
+  longPressTime?: number;
 };
 
 export type UnifiedKeySequence = {
