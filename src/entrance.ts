@@ -12,17 +12,14 @@ import type {
 } from './types/entrance';
 import type { CallbackOptions, DOMMethodOptions } from './types/option';
 import { filterTargetElementToObserve } from './utils/base';
-import { convertPolymorphicHotkeyToUnified } from './utils/transform';
 
 const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotkey>>()(
   (hotkey, featureOption) => {
-    const unifiedHotkeys = convertPolymorphicHotkeyToUnified(hotkey);
-
     Object.assign(featureOption.options.trigger || {}, defaultTriggerOptions);
 
     // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
     const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      keyCombinations: unifiedHotkeys,
+      keyCombination: hotkeyConfigPool.utils.converToInternalKeyCombination(hotkey),
       feature: featureOption
     });
 
@@ -59,12 +56,11 @@ superHotkey.unbind = (
     hotkeyConfigPool.clear();
   } else {
     const [hotkey, featureCondition] = args;
-    const unifiedHotkeys = convertPolymorphicHotkeyToUnified(hotkey);
 
     // 从热键配置池中删除
     const completelyRemoveConfigs = hotkeyConfigPool.remove({
-      featureCondition,
-      hotkeys: unifiedHotkeys
+      feature: featureCondition,
+      keyCombination: hotkeyConfigPool.utils.converToInternalKeyCombination(hotkey)
     });
 
     // 再根据热键池中可能整个删掉的配置来取消按键监听

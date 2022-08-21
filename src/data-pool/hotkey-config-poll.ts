@@ -2,12 +2,12 @@ import { filter, isEqual, pick } from 'lodash-es';
 import { nanoid } from 'nanoid';
 import type { ReadonlyDeep } from 'type-fest';
 
-import type { KeypressRecord } from './keypress-record-poll';
+import type { MergedModifierKey, MergedNormalKey } from '../constants/keyboard-key';
 import type { KeyCombination } from '../matcher';
 import type {
+  PolymorphicHotkeyParams,
   UnbindFeatureCondition,
   UnifiedFeature,
-  UnifiedHotkey,
   UnifiedKeySequence
 } from '../types/entrance';
 
@@ -23,9 +23,28 @@ import type {
 //   feature: UniformHotkeyOptions;
 // };
 
+export interface InternalSequenceKeyCombination {
+  type: 'sequence';
+  sequences: Array<{
+    modifierKeys: MergedModifierKey[];
+    normalKey: MergedNormalKey;
+    interval: number;
+    // TODO: 暂不支持 长按
+  }>;
+}
+
 export interface HotkeyConfig {
   id: string;
-  keyCombinations: UnifiedHotkey[];
+  keyCombination:
+    | {
+        type: 'common';
+        contents: Array<{
+          modifierKeys: MergedModifierKey[];
+          normalKey: MergedNormalKey;
+          longPressTime?: number;
+        }>;
+      }
+    | InternalSequenceKeyCombination;
   feature: UnifiedFeature;
 }
 
@@ -41,7 +60,7 @@ class HotkeyConfigPool {
   }
 
   public add(
-    hotkeyConfig: Pick<HotkeyConfig, 'keyCombinations' | 'feature'>
+    hotkeyConfig: Pick<HotkeyConfig, 'keyCombination' | 'feature'>
   ): HotkeyConfig['id'] | false {
     const hotkeyId = nanoid();
 
@@ -55,20 +74,19 @@ class HotkeyConfigPool {
    * @returns 完全被移除的 `热键配置`
    */
   public remove(condition: {
-    hotkeys: UnifiedHotkey[];
-    featureCondition?: UnbindFeatureCondition;
+    keyCombination?: HotkeyConfig['keyCombination'];
+    feature?: UnbindFeatureCondition;
   }): HotkeyConfig[] {
     const conditionToRemove: Partial<HotkeyConfig> = {};
 
-    if (condition.hotkeys.length !== 0) {
-      conditionToRemove.keyCombinations = condition.hotkeys;
+    if (condition.keyCombination) {
+      conditionToRemove.keyCombination = condition.keyCombination;
     }
 
-    if (condition.featureCondition) {
-      conditionToRemove.feature = condition.featureCondition as any;
+    if (condition.feature) {
+      conditionToRemove.feature = condition.feature as any;
     }
 
-    // lodash-filter 的判断原因，
     const relatedHotkeyConfigs = filter(this.hotkeyConfigs, conditionToRemove);
 
     // 完全移除的话，有如下两个条件
@@ -78,41 +96,60 @@ class HotkeyConfigPool {
     const completelyRemoveConfigs: HotkeyConfig[] = [];
 
     for (const relatedHotkeyConfig of relatedHotkeyConfigs) {
-      // 没传指定的 hotkey 条件，则删所有与特性相关的配置
-      if (!conditionToRemove.keyCombinations) {
+      // 没传指定的 keyCombination 条件，则删所有与特性相关的配置
+      if (!conditionToRemove.keyCombination) {
         completelyRemoveConfigs.push(relatedHotkeyConfig);
         removeById.call(this, relatedHotkeyConfig.id);
       } else {
-        for (
-          let index = relatedHotkeyConfig.keyCombinations.length;
-          index >= 0;
-          index--
+        // TODO: 为什么这里不能收缩类型？
+        if (
+          relatedHotkeyConfig.keyCombination.type === 'common' &&
+          conditionToRemove.keyCombination.type === 'common'
         ) {
-          condition.hotkeys.forEach(item => {
-            if (isEqual(relatedHotkeyConfig.keyCombinations[index], item)) {
-              removeKeyCombsByIdAndIndex.call(this, relatedHotkeyConfig.id, index);
-            }
-          });
-        }
+          const relatedCommonHotkeys = relatedHotkeyConfig.keyCombination.contents;
+          const conditionOfCommonHotkeys = conditionToRemove.keyCombination.contents;
 
-        // 【标记1】
-        if (relatedHotkeyConfig.keyCombinations.length === 0) {
-          completelyRemoveConfigs.push(relatedHotkeyConfig);
-          removeById.call(this, relatedHotkeyConfig.id);
+          for (let index = relatedCommonHotkeys.length; index >= 0; index--) {
+            conditionOfCommonHotkeys.forEach(commonCondition => {
+              if (isEqual(relatedCommonHotkeys[index], commonCondition)) {
+                removeCommonKeyCombByIdAndIndex.call(this, relatedHotkeyConfig.id, index);
+              }
+            });
+          }
+
+          // 【标记1】
+          if (relatedHotkeyConfig.keyCombination.contents.length === 0) {
+            completelyRemoveConfigs.push(relatedHotkeyConfig);
+            removeById.call(this, relatedHotkeyConfig.id);
+          }
+        } else if (
+          relatedHotkeyConfig.keyCombination.type === 'sequence' &&
+          conditionToRemove.keyCombination.type === 'sequence'
+        ) {
+          const relatedSequenceHotkeys = relatedHotkeyConfig.keyCombination.sequences;
+          const conditionOfSequenceHotkeys = conditionToRemove.keyCombination.sequences;
+
+          // 【标记1】
+          if (isEqual(relatedSequenceHotkeys, conditionOfSequenceHotkeys)) {
+            completelyRemoveConfigs.push(relatedHotkeyConfig);
+            removeById.call(this, relatedHotkeyConfig.id);
+          }
         }
       }
     }
 
     return completelyRemoveConfigs;
 
-    function removeKeyCombsByIdAndIndex(
+    function removeCommonKeyCombByIdAndIndex(
       this: HotkeyConfigPool,
       hotkeyId: HotkeyConfig['id'],
-      keyCombIndex: number
+      contentIndex: number
     ) {
       const hotkeyConfig = this.hotkeyConfigs.find(config => config.id === hotkeyId)!;
 
-      hotkeyConfig.keyCombinations.splice(keyCombIndex, 1);
+      if (hotkeyConfig.keyCombination.type === 'common') {
+        hotkeyConfig.keyCombination.contents.splice(contentIndex, 1);
+      }
     }
 
     function removeById(this: HotkeyConfigPool, hotkeyId: HotkeyConfig['id']): void {
@@ -136,12 +173,19 @@ class HotkeyConfigPool {
 
   public get utils() {
     return {
-      getSuitedHotkeyConfig: getSuitedHotkeyConfig.bind(this)
+      getSuitedHotkeyConfig: getSuitedHotkeyConfig.bind(this),
+      converToInternalKeyCombination: converToInternalKeyCombination.bind(this)
     };
 
+    function converToInternalKeyCombination(
+      polymorphicHotkey: PolymorphicHotkeyParams
+    ): HotkeyConfig['keyCombination'] {
+      return {} as any;
+    }
+
     interface SuitedHotkeyConfig {
-      common: HotkeyConfig[];
-      sequence: HotkeyConfig[];
+      commons: HotkeyConfig[];
+      sequences: HotkeyConfig[];
     }
 
     function getSuitedHotkeyConfig(
@@ -149,59 +193,66 @@ class HotkeyConfigPool {
       lastTwoKeyCombinations: readonly [KeyCombination | undefined, KeyCombination]
     ): SuitedHotkeyConfig {
       const suitedHotkeyConfig: SuitedHotkeyConfig = {
-        common: [],
-        sequence: []
+        commons: [],
+        sequences: []
       };
 
       this.hotkeyConfigs.forEach(config => {
-        config.keyCombinations.forEach(keyCombConfig => {
-          if (keyCombConfig.type === 'common') {
-            // 是 common 类型的键，且此次按下的键与配置中的键相符，即达标
-            const [, lastOneKeyComb] = lastTwoKeyCombinations;
+        if (config.keyCombination.type === 'common') {
+          // 是 common 类型的键，且此次按下的键与配置中的键相符，即达标
 
-            if (isKeyCombEqual(lastOneKeyComb, keyCombConfig)) {
-              suitedHotkeyConfig.common.push(config);
-            }
-          } else {
-            const [penultimateKeyComb, lastOneKeyComb] = lastTwoKeyCombinations;
+          const commonKeyCombs = config.keyCombination.contents;
+          const [, lastOneKeyComb] = lastTwoKeyCombinations;
 
-            // 没有倒数第二组键，则不匹配 「键序列」 相关的键
-            if (!penultimateKeyComb) {
-              return;
+          commonKeyCombs.some(keyComb => {
+            if (isKeyCombEqual(lastOneKeyComb, keyComb)) {
+              suitedHotkeyConfig.commons.push(config);
+
+              return true;
             }
 
-            sequenceFor: for (let i = 0; i < keyCombConfig.sequenceGroup.length; i++) {
-              const currentSequenceKeyComb = keyCombConfig.sequenceGroup[i];
+            return false;
+          });
+        } else if (config.keyCombination.type === 'sequence') {
+          const [penultimateKeyComb, lastOneKeyComb] = lastTwoKeyCombinations;
 
-              const nextSequenceKeyComb = keyCombConfig.sequenceGroup[i + 1] as
-                | undefined
-                | UnifiedKeySequence['sequenceGroup'][number];
+          // 没有倒数第二组键，则不匹配 「键序列」 相关的键
+          if (!penultimateKeyComb) {
+            return;
+          }
 
-              // 两组键 是否与 键序列配置中的键 相同
-              // ---
-              // 判断 第一组键
-              if (isKeyCombEqual(penultimateKeyComb, currentSequenceKeyComb)) {
-                // 判断 第二组键，前提为「键序列配置」中有下一组
-                if (
-                  nextSequenceKeyComb &&
-                  isKeyCombEqual(lastOneKeyComb, nextSequenceKeyComb)
-                ) {
-                  // 第一组键 与 第二组键 的按下间隔是否达到「键序列配置」中的要求
-                  const effectiveInterval =
-                    /* 单组键的间隔要求 */ currentSequenceKeyComb.interval! >=
-                    /* 倒数第一组键的按下时间 */ lastOneKeyComb.timeStamp -
-                      /* 倒数第二组键的按下时间 */ penultimateKeyComb.timeStamp;
+          const sequenceKeyCombs = config.keyCombination.sequences;
 
-                  if (effectiveInterval) {
-                    suitedHotkeyConfig.sequence.push(config);
-                    // 找到了理想的键序列配置，则结束
-                    break sequenceFor;
-                  }
+          sequenceFor: for (let i = 0; i < sequenceKeyCombs.length; i++) {
+            const currentSequenceKeyComb = sequenceKeyCombs[i];
+            const nextSequenceKeyComb = sequenceKeyCombs[i + 1] as
+              | undefined
+              | UnifiedKeySequence['sequenceGroup'][number];
+
+            // 两组键 是否与 键序列配置中的键 相同
+            // ---
+            // 判断 第一组键
+            if (isKeyCombEqual(penultimateKeyComb, currentSequenceKeyComb)) {
+              // 判断 第二组键，前提为「键序列配置」中有下一组
+              if (
+                nextSequenceKeyComb &&
+                isKeyCombEqual(lastOneKeyComb, nextSequenceKeyComb)
+              ) {
+                // 第一组键 与 第二组键 的按下间隔是否达到「键序列配置」中的要求
+                const effectiveInterval =
+                  /* 单组键的间隔要求 */ nextSequenceKeyComb.interval! >=
+                  /* 倒数第一组键的按下时间 */ lastOneKeyComb.timeStamp -
+                    /* 倒数第二组键的按下时间 */ penultimateKeyComb.timeStamp;
+
+                if (effectiveInterval) {
+                  suitedHotkeyConfig.sequences.push(config);
+                  // 找到了理想的键序列配置，则结束
+                  break sequenceFor;
                 }
               }
             }
           }
-        });
+        }
       });
 
       return suitedHotkeyConfig;

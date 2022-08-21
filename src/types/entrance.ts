@@ -13,18 +13,15 @@ export type UnifiedCommonKey = {
 
 export type UnifiedKeySequence = {
   type: 'sequence';
-  sequenceGroup: Array<
-    {
-      modifierKeys?: MergedModifierKey[];
-      normalKey: MergedNormalKey;
-      // TODO: 暂不支持 长按
-    } & Pick<KeySequenceObj, 'interval'>
-  >;
+  sequenceGroup: Array<{
+    modifierKeys: MergedModifierKey[];
+    normalKey: MergedNormalKey;
+    interval: number;
+    // TODO: 暂不支持 长按
+  }>;
 };
 
 export type UnifiedHotkey = UnifiedCommonKey | UnifiedKeySequence;
-
-export type HotkeyKeyType = UnifiedHotkey['type'];
 
 export type FeatureDOMMethod = {
   type: 'domMethod';
