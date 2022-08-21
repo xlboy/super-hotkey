@@ -84,7 +84,7 @@ class Matcher {
               // 当前的尾部的热键信息全部验证成功，可记录最小开始索引
               if (index === caudalKeyCombs.length - 1) {
                 // 刷新最小起始索引
-                if (keyCombIndex < minStartIndex) {
+                if (keyCombIndex < minStartIndex || minStartIndex === undefined) {
                   minStartIndex = keyCombIndex;
                 }
 

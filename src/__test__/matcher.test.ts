@@ -66,10 +66,26 @@ describe('单按（非长按）的键序列匹配 - 核心函数 sequenceHandler
       { modifierKeys: [], normalKey: '5', timeStamp: 330 }
     ]);
 
-    console.log('matchedResult', matchedResult.minStartIndex);
-
+    expect(matchedResult.minStartIndex).toBe(0);
     expect(matchedResult.perfectlyMatchedSequenceConfig.length).toBe(1);
 
     expect(matchedResult.perfectlyMatchedSequenceConfig[0].id).toBe(addSuccessfulIds[2]);
+  });
+
+  it('最小的开始索引', () => {
+    hotkeyConfigPool.clear();
+    testHotkeyConfigs.map(config => hotkeyConfigPool.add(config));
+
+    const matchedResult = matcher.sequenceHandler([
+      { modifierKeys: [], normalKey: '%', timeStamp: 0 },
+      { modifierKeys: [], normalKey: ':', timeStamp: 100 },
+      { modifierKeys: [], normalKey: '1', timeStamp: 200 },
+      { modifierKeys: [], normalKey: '4', timeStamp: 230 },
+      { modifierKeys: [], normalKey: '4', timeStamp: 240 },
+      { modifierKeys: [], normalKey: '5', timeStamp: 300 }
+    ]);
+
+    expect(matchedResult.minStartIndex).toBe(2);
+    expect(matchedResult.perfectlyMatchedSequenceConfig.length).toBe(0);
   });
 });
