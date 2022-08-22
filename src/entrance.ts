@@ -19,7 +19,7 @@ const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotk
 
     // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
     const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      keyCombination: hotkeyConfigPool.utils.converToInternalKeyCombination(hotkey),
+      keyCombination: hotkeyConfigPool.utils.convertToInternalKeyCombination(hotkey),
       feature: featureOption
     });
 
@@ -60,7 +60,7 @@ superHotkey.unbind = (
     // 从热键配置池中删除
     const completelyRemoveConfigs = hotkeyConfigPool.remove({
       feature: featureCondition,
-      keyCombination: hotkeyConfigPool.utils.converToInternalKeyCombination(hotkey)
+      keyCombination: hotkeyConfigPool.utils.convertToInternalKeyCombination(hotkey)
     });
 
     // 再根据热键池中可能整个删掉的配置来取消按键监听

@@ -175,10 +175,10 @@ class HotkeyConfigPool {
   public get utils() {
     return {
       getSuitedHotkeyConfig: getSuitedHotkeyConfig.bind(this),
-      converToInternalKeyCombination: converToInternalKeyCombination.bind(this)
+      convertToInternalKeyCombination: convertToInternalKeyCombination.bind(this)
     };
 
-    function converToInternalKeyCombination(
+    function convertToInternalKeyCombination(
       polymorphicHotkey: PolymorphicHotkeyParams
     ): HotkeyConfig['keyCombination'] {
       return {} as any;
