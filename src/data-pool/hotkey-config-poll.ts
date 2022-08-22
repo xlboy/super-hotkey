@@ -130,6 +130,7 @@ class HotkeyConfigPool {
           const conditionOfSequenceHotkeys = conditionToRemove.keyCombination.sequences;
 
           // 【标记1】
+          // TODO: 键序列的完全移除还需要再深入验证，用户传的 hotkey-condition-array，不一定是完全匹配的（sequence-array-length 与 内部内容）
           if (isEqual(relatedSequenceHotkeys, conditionOfSequenceHotkeys)) {
             completelyRemoveConfigs.push(relatedHotkeyConfig);
             removeById.call(this, relatedHotkeyConfig.id);
@@ -184,8 +185,8 @@ class HotkeyConfigPool {
     }
 
     interface SuitedHotkeyConfig {
-      commons: HotkeyConfig[];
-      sequences: HotkeyConfig[];
+      perfectMatchedCommons: HotkeyConfig[];
+      similarSequences: HotkeyConfig[];
     }
 
     function getSuitedHotkeyConfig(
@@ -193,37 +194,31 @@ class HotkeyConfigPool {
       lastTwoKeyCombinations: readonly [KeyCombination | undefined, KeyCombination]
     ): SuitedHotkeyConfig {
       const suitedHotkeyConfig: SuitedHotkeyConfig = {
-        commons: [],
-        sequences: []
+        perfectMatchedCommons: [],
+        similarSequences: []
       };
 
       this.hotkeyConfigs.forEach(config => {
         if (config.keyCombination.type === 'common') {
-          // 是 common 类型的键，且此次按下的键与配置中的键相符，即达标
-
-          const commonKeyCombs = config.keyCombination.contents;
           const [, lastOneKeyComb] = lastTwoKeyCombinations;
 
-          commonKeyCombs.some(keyComb => {
-            if (isKeyCombEqual(lastOneKeyComb, keyComb)) {
-              suitedHotkeyConfig.commons.push(config);
-
-              return true;
+          for (const commonKeyComb of config.keyCombination.contents) {
+            if (isKeyCombEqual(lastOneKeyComb, commonKeyComb)) {
+              suitedHotkeyConfig.perfectMatchedCommons.push(config);
+              break;
             }
-
-            return false;
-          });
+          }
         } else if (config.keyCombination.type === 'sequence') {
           const [penultimateKeyComb, lastOneKeyComb] = lastTwoKeyCombinations;
 
-          // 没有倒数第二组键，则不匹配 「键序列」 相关的键
+          // 没有倒数第二组键，则不匹配与 「键序列」 相似的键
           if (!penultimateKeyComb) {
             return;
           }
 
           const sequenceKeyCombs = config.keyCombination.sequences;
 
-          sequenceFor: for (let i = 0; i < sequenceKeyCombs.length; i++) {
+          for (let i = 0; i < sequenceKeyCombs.length; i++) {
             const currentSequenceKeyComb = sequenceKeyCombs[i];
             const nextSequenceKeyComb = sequenceKeyCombs[i + 1] as
               | undefined
@@ -245,9 +240,9 @@ class HotkeyConfigPool {
                     /* 倒数第二组键的按下时间 */ penultimateKeyComb.timeStamp;
 
                 if (effectiveInterval) {
-                  suitedHotkeyConfig.sequences.push(config);
-                  // 找到了理想的键序列配置，则结束
-                  break sequenceFor;
+                  suitedHotkeyConfig.similarSequences.push(config);
+                  // 找到了相似的键序列配置，则结束。
+                  break;
                 }
               }
             }

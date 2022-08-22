@@ -1,4 +1,4 @@
-import { isEqual, pick } from 'lodash-es';
+import { isEqual } from 'lodash-es';
 
 import type { MergedModifierKey, MergedNormalKey } from './constants/keyboard-key';
 import type {
@@ -7,6 +7,7 @@ import type {
 } from './data-pool/hotkey-config-poll';
 import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
 import type { KeypressRecord } from './data-pool/keypress-record-poll';
+import { dispatch } from './dispatch';
 
 export interface KeyCombination {
   modifierKeys: MergedModifierKey[];
@@ -37,62 +38,87 @@ class Matcher {
         })
       );
 
-      const currentTargetElKeyCombs = this.targetElKeyCombinationMap.get(targetElement)!;
+      const targetElKeyCombs = this.targetElKeyCombinationMap.get(targetElement)!;
 
-      this.sequenceHandler(currentTargetElKeyCombs);
+      const suitedHotkeyConfig = hotkeyConfigPool.utils.getSuitedHotkeyConfig([
+        targetElKeyCombs.at(-2),
+        targetElKeyCombs.at(-1)!
+      ]);
+
+      const matchedSequence = this.sequenceMatcher(
+        targetElKeyCombs,
+        suitedHotkeyConfig.similarSequences
+      );
+
+      if (matchedSequence.usefulStartIndex !== undefined) {
+        this.uselessHistoryKeyCombsToRemoveFromHead(
+          targetElement,
+          matchedSequence.usefulStartIndex
+        );
+      }
+
+      dispatch.dispatch(suitedHotkeyConfig.perfectMatchedCommons, event);
+      dispatch.dispatch(matchedSequence.perfectlyMatchedConfigs, event);
     }
   }
 
-  public sequenceHandler(currentTargetElKeyCombs: Array<KeyCombination>) {
-    // 根据 `最后按下的两组键` 来匹配出 `合适的热键们`
-    const suitedHotkeyConfig = hotkeyConfigPool.utils.getSuitedHotkeyConfig([
-      currentTargetElKeyCombs.at(-2),
-      currentTargetElKeyCombs.at(-1)!
-    ]);
+  public sequenceMatcher(
+    targetElKeyCombs: Array<KeyCombination>,
+    similarSequenceConfigs: HotkeyConfig[]
+  ) {
+    const perfectlyMatchedConfigs: HotkeyConfig[] = [];
+    let usefulStartIndex: number | undefined = undefined;
 
-    const perfectlyMatchedSequenceConfig: HotkeyConfig[] = [];
-    let minStartIndex!: number;
-
-    suitedHotkeyConfig.sequences.forEach(sequenceConfig => {
-      const sequencesSource = (
-        sequenceConfig.keyCombination as InternalSequenceKeyCombination
+    similarSequenceConfigs.forEach(similarConfig => {
+      const keyCombsOfSimilarConfig = (
+        similarConfig.keyCombination as InternalSequenceKeyCombination
       ).sequences;
 
       for (
-        let keyCombIndex = currentTargetElKeyCombs.length - 1;
-        keyCombIndex >= 0;
-        keyCombIndex--
+        let targetElKeyCombIndex = targetElKeyCombs.length - 1;
+        targetElKeyCombIndex >= 0;
+        targetElKeyCombIndex--
       ) {
-        const caudalKeyCombs = currentTargetElKeyCombs.slice(keyCombIndex);
+        const caudalKeyCombs = targetElKeyCombs.slice(targetElKeyCombIndex);
 
-        caudalKeyCombs.every((caudalKeyComb, index) => {
-          // 判断 「修饰键」 与 「正常键」 是否符合要求
+        caudalKeyCombs.every((caudalKeyComb, caudalKeyCombIndex) => {
           if (
-            isEqual(caudalKeyComb.modifierKeys, sequencesSource[index].modifierKeys) &&
-            isEqual(caudalKeyComb.normalKey, sequencesSource[index].normalKey)
+            isEqual(
+              caudalKeyComb.modifierKeys,
+              keyCombsOfSimilarConfig[caudalKeyCombIndex].modifierKeys
+            ) &&
+            isEqual(
+              caudalKeyComb.normalKey,
+              keyCombsOfSimilarConfig[caudalKeyCombIndex].normalKey
+            )
           ) {
-            if (index === 0) {
+            if (caudalKeyCombIndex === 0) {
               return true;
             }
 
             const effectiveInterval =
               /* 当前的尾部的时间戳 */ caudalKeyComb.timeStamp -
-                /* 上一个的尾部的时间戳 */ caudalKeyCombs[index - 1].timeStamp <=
-              /* 键序列配置里要求的间隔 */ sequencesSource[index].interval;
+                /* 上一个的尾部的时间戳 */ caudalKeyCombs[caudalKeyCombIndex - 1]
+                  .timeStamp <=
+              /* 键序列配置里要求的间隔 */ keyCombsOfSimilarConfig[caudalKeyCombIndex]
+                .interval;
 
             if (effectiveInterval) {
               // 当前的尾部的热键信息全部验证成功，可记录最小开始索引
-              if (index === caudalKeyCombs.length - 1) {
+              if (caudalKeyCombIndex === caudalKeyCombs.length - 1) {
                 // 刷新最小起始索引
-                if (keyCombIndex < minStartIndex || minStartIndex === undefined) {
-                  minStartIndex = keyCombIndex;
+                if (
+                  usefulStartIndex === undefined ||
+                  targetElKeyCombIndex < usefulStartIndex
+                ) {
+                  usefulStartIndex = targetElKeyCombIndex;
                 }
 
                 if (
-                  keyCombIndex === 0 &&
-                  caudalKeyCombs.length === sequencesSource.length
+                  targetElKeyCombIndex === 0 &&
+                  caudalKeyCombs.length === keyCombsOfSimilarConfig.length
                 ) {
-                  perfectlyMatchedSequenceConfig.push(sequenceConfig);
+                  perfectlyMatchedConfigs.push(similarConfig);
                 }
               }
 
@@ -106,9 +132,19 @@ class Matcher {
     });
 
     return {
-      perfectlyMatchedSequenceConfig,
-      minStartIndex
+      perfectlyMatchedConfigs,
+      usefulStartIndex
     };
+  }
+
+  private uselessHistoryKeyCombsToRemoveFromHead(
+    targetElement: EventTarget,
+    deleteCount: number
+  ) {
+    this.targetElKeyCombinationMap.set(
+      targetElement,
+      (this.targetElKeyCombinationMap.get(targetElement) || []).splice(0, deleteCount)
+    );
   }
 
   private longPressHandler() {}

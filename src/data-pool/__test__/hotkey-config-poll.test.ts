@@ -80,7 +80,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
             normalKey: '7',
             timeStamp: 1
           }
-        ]).commons[0].id
+        ]).perfectMatchedCommons[0].id
       ).toBe(addSuccessfulId);
     });
 
@@ -101,7 +101,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
               timeStamp: 1
             }
           ])
-          .commons.map(_ => _.id)
+          .perfectMatchedCommons.map(_ => _.id)
       ).toEqual(expect.arrayContaining(addSuccessfulIds));
     });
 
@@ -113,7 +113,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
         hotkeyConfigPool.utils.getSuitedHotkeyConfig([
           undefined,
           { modifierKeys: ['Alt'], normalKey: 'S', timeStamp: 1 }
-        ]).commons.length
+        ]).perfectMatchedCommons.length
       ).toBe(0);
     });
   });
@@ -135,7 +135,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
             normalKey: 's',
             timeStamp: 1640970061300
           }
-        ]).sequences?.[0]?.id
+        ]).similarSequences?.[0]?.id
       ).toBe(addSuccessfulId);
     });
 
@@ -155,7 +155,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
             normalKey: 's',
             timeStamp: 1640970062100
           }
-        ]).sequences.length
+        ]).similarSequences.length
       ).toBe(0);
     });
 
@@ -175,7 +175,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
             normalKey: 's',
             timeStamp: 1640970061200
           }
-        ]).sequences.length
+        ]).similarSequences.length
       ).toBe(0);
     });
   });
