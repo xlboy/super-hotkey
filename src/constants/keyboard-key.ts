@@ -226,3 +226,5 @@ export type DefaultNormalKey = typeof defaultNormalKeys[number];
 
 export type MergedNormalKey = EnhancedNormalKey | DefaultNormalKey;
 //#endregion  //*======== normal ===========
+
+export type DefaultKey = DefaultNormalKey | DefaultModifierKey;

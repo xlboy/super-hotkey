@@ -34,7 +34,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
       feature,
       keyCombination: {
         type: 'common',
-        contents: [{ modifierKeys: ['Cmd', 'Shift'], normalKey: '7' }]
+        contents: [{ modifierKeys: ['Meta', 'Shift'], normalKey: '7' }]
       }
     },
     {
@@ -42,7 +42,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
       keyCombination: {
         type: 'common',
         contents: [
-          { modifierKeys: ['Cmd', 'Shift'], normalKey: '7' },
+          { modifierKeys: ['Meta', 'Shift'], normalKey: '7' },
           { modifierKeys: ['Control', 'Alt'], normalKey: 'j' }
         ]
       }
@@ -53,7 +53,7 @@ describe('根据 指定条件 获取 合适的热键配置（utils-getSuitedHotk
         type: 'sequence',
         sequences: [
           {
-            modifierKeys: ['Cmd', 'Shift'],
+            modifierKeys: ['Meta', 'Shift'],
             normalKey: '7',
             interval: 500
           },

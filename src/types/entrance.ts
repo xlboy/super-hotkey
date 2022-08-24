@@ -1,21 +1,22 @@
 import type { PartialDeep } from 'type-fest';
 
-import type { CommonKey, KeySequence, KeySequenceObj } from './hotkey';
+import type { CommonKey, KeySequence } from './hotkey';
 import type { CallbackOptions, DOMMethodOptions } from './option';
-import type { MergedModifierKey, MergedNormalKey } from '../constants/keyboard-key';
+import type { DefaultModifierKey, DefaultNormalKey } from '../constants/keyboard-key';
+import type { HotkeyConfig } from '../data-pool/hotkey-config-poll';
 
 export type UnifiedCommonKey = {
   type: 'common';
-  modifierKeys: MergedModifierKey[];
-  normalKey: MergedNormalKey;
+  modifierKeys: DefaultModifierKey[];
+  normalKey: DefaultNormalKey;
   longPressTime?: number;
 };
 
 export type UnifiedKeySequence = {
   type: 'sequence';
   sequenceGroup: Array<{
-    modifierKeys: MergedModifierKey[];
-    normalKey: MergedNormalKey;
+    modifierKeys: DefaultModifierKey[];
+    normalKey: DefaultNormalKey;
     interval: number;
     // TODO: 暂不支持 长按
   }>;
@@ -86,4 +87,9 @@ export interface SuperHotkey {
     hotkey: PolymorphicHotkeyParams,
     conditions: PartialDeep<CallbackOptions>
   ): void;
+
+  internal: {
+    // unbind(): void;
+    bind(hotkey: HotkeyConfig['keyCombination'], featureOptions: UnifiedFeature): void;
+  };
 }

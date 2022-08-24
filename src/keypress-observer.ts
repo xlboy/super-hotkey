@@ -45,7 +45,6 @@ class KeypressObserver {
 
     const isLongPressHotkey = triggerOptions.isLongPress!;
 
-    // 将 listener 存至 `hotkeyListeners` 中，以便卸载热键时从里面取（通过核心因素 `hotkeyId`）
     if (isLongPressHotkey) {
       const keyDownListener = getListenerByTriggerMode('keydown');
       const keyUpListener = getListenerByTriggerMode('keyup');
@@ -93,7 +92,7 @@ class KeypressObserver {
           targetElement,
           normalKey: event.key as DefaultNormalKey,
           modifierKeys: getPressedModifierKeys(event),
-          timeStamp: Date.now(),
+          timeStamp: event.timeStamp,
           hotkeyId
         };
 

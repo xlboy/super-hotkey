@@ -19,13 +19,21 @@ class Matcher {
   private targetElKeyCombinationMap: WeakMap<EventTarget, Array<KeyCombination>> =
     new WeakMap();
 
+  private targetElLongPressKeyCombMap: WeakMap<
+    EventTarget,
+    {
+      startHoldingDown: Array<KeyCombination>;
+      released: Array<KeyCombination>;
+    }
+  > = new WeakMap();
+
   public match(
     event: KeyboardEvent,
     isLongPressHotkey: boolean,
     keypressRecord: KeypressRecord
   ) {
     if (isLongPressHotkey) {
-      this.longPressHandler;
+      this.longPressHandler(event, keypressRecord);
     } else {
       const { modifierKeys, normalKey, timeStamp, targetElement } = keypressRecord;
 
@@ -51,14 +59,19 @@ class Matcher {
       );
 
       if (matchedSequence.usefulStartIndex !== undefined) {
-        this.uselessHistoryKeyCombsToRemoveFromHead(
+        this.removeUselessHistoryKeyCombsFromHead(
           targetElement,
           matchedSequence.usefulStartIndex
         );
       }
 
-      dispatch.dispatch(suitedHotkeyConfig.perfectMatchedCommons, event);
-      dispatch.dispatch(matchedSequence.perfectlyMatchedConfigs, event);
+      if (suitedHotkeyConfig.perfectMatchedCommons.length !== 0) {
+        dispatch.dispatch(suitedHotkeyConfig.perfectMatchedCommons, event);
+      }
+
+      if (matchedSequence.perfectlyMatchedConfigs.length !== 0) {
+        dispatch.dispatch(matchedSequence.perfectlyMatchedConfigs, event);
+      }
     }
   }
 
@@ -137,7 +150,7 @@ class Matcher {
     };
   }
 
-  private uselessHistoryKeyCombsToRemoveFromHead(
+  private removeUselessHistoryKeyCombsFromHead(
     targetElement: EventTarget,
     deleteCount: number
   ) {
@@ -147,7 +160,7 @@ class Matcher {
     );
   }
 
-  private longPressHandler() {}
+  private longPressHandler(event: Event, keypressRecord: KeypressRecord) {}
 }
 
 export const matcher = new Matcher();

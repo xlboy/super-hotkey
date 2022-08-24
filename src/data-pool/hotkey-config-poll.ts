@@ -2,7 +2,7 @@ import { filter, isEqual, pick } from 'lodash-es';
 import { nanoid } from 'nanoid';
 import type { ReadonlyDeep } from 'type-fest';
 
-import type { MergedModifierKey, MergedNormalKey } from '../constants/keyboard-key';
+import type { DefaultModifierKey, DefaultNormalKey } from '../constants/keyboard-key';
 import type { KeyCombination } from '../matcher';
 import type {
   PolymorphicHotkeyParams,
@@ -26,8 +26,8 @@ import type {
 export interface InternalSequenceKeyCombination {
   type: 'sequence';
   sequences: Array<{
-    modifierKeys: MergedModifierKey[];
-    normalKey: MergedNormalKey;
+    modifierKeys: DefaultModifierKey[];
+    normalKey: DefaultNormalKey;
     interval: number;
     // TODO: 暂不支持 长按
   }>;
@@ -39,8 +39,8 @@ export interface HotkeyConfig {
     | {
         type: 'common';
         contents: Array<{
-          modifierKeys: MergedModifierKey[];
-          normalKey: MergedNormalKey;
+          modifierKeys: DefaultModifierKey[];
+          normalKey: DefaultNormalKey;
           longPressTime?: number;
         }>;
       }
@@ -172,6 +172,26 @@ class HotkeyConfigPool {
 
   public update() {}
 
+  public filter(
+    conditionFn: (
+      config: ReadonlyDeep<HotkeyConfig>,
+      index?: number,
+      array?: ReadonlyArray<HotkeyConfig>
+    ) => boolean
+  ): ReadonlyArray<HotkeyConfig> {
+    return this.hotkeyConfigs.filter(conditionFn as any);
+  }
+
+  public forEach(
+    callbackFn: (
+      config: ReadonlyDeep<HotkeyConfig>,
+      index?: number,
+      array?: ReadonlyArray<HotkeyConfig>
+    ) => void
+  ): void {
+    this.hotkeyConfigs.forEach(callbackFn as any);
+  }
+
   public get utils() {
     return {
       getSuitedHotkeyConfig: getSuitedHotkeyConfig.bind(this),
@@ -202,6 +222,7 @@ class HotkeyConfigPool {
         if (config.keyCombination.type === 'common') {
           const [, lastOneKeyComb] = lastTwoKeyCombinations;
 
+          // TODO: 如果 单个 common-contents 里出现多个相同的热键，则默认当作同一个。所以 break
           for (const commonKeyComb of config.keyCombination.contents) {
             if (isKeyCombEqual(lastOneKeyComb, commonKeyComb)) {
               suitedHotkeyConfig.perfectMatchedCommons.push(config);

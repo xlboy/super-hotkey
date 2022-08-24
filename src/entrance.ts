@@ -112,4 +112,23 @@ superHotkey.unbindCallback = (
   }
 };
 
+superHotkey.internal = {
+  bind: (hotkey, featureOption) => {
+    featureOption.options.trigger ??= {};
+    Object.assign(featureOption.options.trigger, defaultTriggerOptions);
+
+    // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
+    const addSuccessfulHotkeyId = hotkeyConfigPool.add({
+      keyCombination: hotkey,
+      feature: featureOption
+    });
+
+    if (addSuccessfulHotkeyId) {
+      keypressObserver.observeByHotkeyId(addSuccessfulHotkeyId);
+    } else {
+      throw new Error('添加失败，因 Id 重复');
+    }
+  }
+};
+
 export { superHotkey };
