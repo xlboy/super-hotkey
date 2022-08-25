@@ -1,7 +1,7 @@
-import type { HotkeyConfig } from '../data-pool/hotkey-config-poll';
-import { hotkeyConfigPool } from '../data-pool/hotkey-config-poll';
-import type { KeyCombination } from '../matcher';
-import { matcher } from '../matcher';
+import type { HotkeyConfig } from '../hotkey-config-poll';
+import { hotkeyConfigPool } from '../hotkey-config-poll';
+import type { KeyCombination } from '../matcher/short-press';
+import { shortPressMatcher } from '../matcher/short-press';
 
 const feature: HotkeyConfig['feature'] = {
   type: 'callback',
@@ -72,7 +72,10 @@ describe('单按（非长按）的键序列匹配 - 核心函数 sequenceHandler
       targetElKeyCombs.at(-1)!
     ]);
 
-    const matchedSequence = matcher.sequenceMatcher(targetElKeyCombs, similarSequences);
+    const matchedSequence = shortPressMatcher.sequenceMatcher(
+      targetElKeyCombs,
+      similarSequences
+    );
 
     expect(matchedSequence.usefulStartIndex).toBe(0);
     expect(matchedSequence.perfectlyMatchedConfigs.length).toBe(1);
@@ -98,7 +101,10 @@ describe('单按（非长按）的键序列匹配 - 核心函数 sequenceHandler
       targetElKeyCombs.at(-1)!
     ]);
 
-    const matchedSequence = matcher.sequenceMatcher(targetElKeyCombs, similarSequences);
+    const matchedSequence = shortPressMatcher.sequenceMatcher(
+      targetElKeyCombs,
+      similarSequences
+    );
 
     expect(matchedSequence.usefulStartIndex).toBe(2);
     expect(matchedSequence.perfectlyMatchedConfigs.length).toBe(0);

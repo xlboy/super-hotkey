@@ -1,9 +1,8 @@
-import type { BaseOptions } from '../types/option';
+import type { FeatureOption } from '../types/feature-option';
 
-export const defaultTriggerOptions: BaseOptions['trigger'] = {
+export const defaultTriggerOptions: FeatureOption.Internal.TriggerOptions = {
   allowRepeatWhenLongPress: true,
   throttleDelay: 0,
   capture: false,
-  mode: 'keydown',
-  isLongPress: false
+  mode: 'keydown'
 };

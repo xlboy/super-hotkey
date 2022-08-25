@@ -1,13 +1,15 @@
 import { isEqual } from 'lodash-es';
 
-import type { MergedModifierKey, MergedNormalKey } from './constants/keyboard-key';
 import type {
-  HotkeyConfig,
-  InternalSequenceKeyCombination
-} from './data-pool/hotkey-config-poll';
-import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
-import type { KeypressRecord } from './data-pool/keypress-record-poll';
-import { dispatch } from './dispatch';
+  DefaultModifierKey,
+  DefaultNormalKey,
+  MergedModifierKey,
+  MergedNormalKey
+} from '../constants/keyboard-key';
+import { dispatch } from '../dispatch';
+import type { HotkeyConfig } from '../hotkey-config-poll';
+import { hotkeyConfigPool } from '../hotkey-config-poll';
+import type { Hotkey } from '../types/hotkey';
 
 export interface KeyCombination {
   modifierKeys: MergedModifierKey[];
@@ -15,63 +17,53 @@ export interface KeyCombination {
   timeStamp: number;
 }
 
-class Matcher {
-  private targetElKeyCombinationMap: WeakMap<EventTarget, Array<KeyCombination>> =
-    new WeakMap();
+class ShortPressMatcher {
+  private targetElKeyCombMap = new WeakMap<EventTarget, Array<KeyCombination>>();
 
-  private targetElLongPressKeyCombMap: WeakMap<
-    EventTarget,
-    {
-      startHoldingDown: Array<KeyCombination>;
-      released: Array<KeyCombination>;
+  public match(params: {
+    event: KeyboardEvent;
+    timeStamp: number;
+    normalKey: DefaultNormalKey;
+    modifierKeys: DefaultModifierKey[];
+    targetEl: HTMLElement | Document;
+    hotkeyId: HotkeyConfig['id'];
+  }) {
+    const { modifierKeys, normalKey, timeStamp, targetEl, event } = params;
+
+    this.targetElKeyCombMap.set(
+      targetEl,
+      (this.targetElKeyCombMap.get(targetEl) || []).concat({
+        modifierKeys,
+        normalKey,
+        timeStamp
+      })
+    );
+
+    const targetElKeyCombs = this.targetElKeyCombMap.get(targetEl)!;
+
+    const suitedHotkeyConfig = hotkeyConfigPool.utils.getSuitedHotkeyConfig([
+      targetElKeyCombs.at(-2),
+      targetElKeyCombs.at(-1)!
+    ]);
+
+    const matchedSequence = this.sequenceMatcher(
+      targetElKeyCombs,
+      suitedHotkeyConfig.similarSequences
+    );
+
+    if (matchedSequence.usefulStartIndex !== undefined) {
+      this.removeUselessHistoryKeyCombsFromHead(
+        targetEl,
+        matchedSequence.usefulStartIndex
+      );
     }
-  > = new WeakMap();
 
-  public match(
-    event: KeyboardEvent,
-    isLongPressHotkey: boolean,
-    keypressRecord: KeypressRecord
-  ) {
-    if (isLongPressHotkey) {
-      this.longPressHandler(event, keypressRecord);
-    } else {
-      const { modifierKeys, normalKey, timeStamp, targetElement } = keypressRecord;
+    if (suitedHotkeyConfig.perfectMatchedCommons.length !== 0) {
+      dispatch.dispatch(suitedHotkeyConfig.perfectMatchedCommons, event);
+    }
 
-      this.targetElKeyCombinationMap.set(
-        targetElement,
-        (this.targetElKeyCombinationMap.get(targetElement) || []).concat({
-          modifierKeys,
-          normalKey,
-          timeStamp
-        })
-      );
-
-      const targetElKeyCombs = this.targetElKeyCombinationMap.get(targetElement)!;
-
-      const suitedHotkeyConfig = hotkeyConfigPool.utils.getSuitedHotkeyConfig([
-        targetElKeyCombs.at(-2),
-        targetElKeyCombs.at(-1)!
-      ]);
-
-      const matchedSequence = this.sequenceMatcher(
-        targetElKeyCombs,
-        suitedHotkeyConfig.similarSequences
-      );
-
-      if (matchedSequence.usefulStartIndex !== undefined) {
-        this.removeUselessHistoryKeyCombsFromHead(
-          targetElement,
-          matchedSequence.usefulStartIndex
-        );
-      }
-
-      if (suitedHotkeyConfig.perfectMatchedCommons.length !== 0) {
-        dispatch.dispatch(suitedHotkeyConfig.perfectMatchedCommons, event);
-      }
-
-      if (matchedSequence.perfectlyMatchedConfigs.length !== 0) {
-        dispatch.dispatch(matchedSequence.perfectlyMatchedConfigs, event);
-      }
+    if (matchedSequence.perfectlyMatchedConfigs.length !== 0) {
+      dispatch.dispatch(matchedSequence.perfectlyMatchedConfigs, event);
     }
   }
 
@@ -83,9 +75,8 @@ class Matcher {
     let usefulStartIndex: number | undefined = undefined;
 
     similarSequenceConfigs.forEach(similarConfig => {
-      const keyCombsOfSimilarConfig = (
-        similarConfig.keyCombination as InternalSequenceKeyCombination
-      ).sequences;
+      const keyCombsOfSimilarConfig = similarConfig.keyComb
+        .contents as Hotkey.Internal.Sequence[];
 
       for (
         let targetElKeyCombIndex = targetElKeyCombs.length - 1;
@@ -154,13 +145,11 @@ class Matcher {
     targetElement: EventTarget,
     deleteCount: number
   ) {
-    this.targetElKeyCombinationMap.set(
+    this.targetElKeyCombMap.set(
       targetElement,
-      (this.targetElKeyCombinationMap.get(targetElement) || []).splice(0, deleteCount)
+      (this.targetElKeyCombMap.get(targetElement) || []).splice(0, deleteCount)
     );
   }
-
-  private longPressHandler(event: Event, keypressRecord: KeypressRecord) {}
 }
 
-export const matcher = new Matcher();
+export const shortPressMatcher = new ShortPressMatcher();

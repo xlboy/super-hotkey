@@ -1,26 +1,84 @@
 import type { PartialDeep } from 'type-fest';
 
 import { defaultTriggerOptions } from './constants/base';
-import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
+import type { HotkeyConfig } from './hotkey-config-poll';
+import { hotkeyConfigPool } from './hotkey-config-poll';
 import { keypressObserver } from './keypress-observer';
 import type { ExtractFunctionFromPolymorphicType } from './types/base';
 import { defineVariables } from './types/base';
-import type {
-  PolymorphicHotkeyParams,
-  SuperHotkey,
-  UnbindFeatureCondition
-} from './types/entrance';
-import type { CallbackOptions, DOMMethodOptions } from './types/option';
+import type FeatureOption from './types/feature-option';
+import type { Hotkey } from './types/hotkey';
 import { filterTargetElementToObserve } from './utils/base';
+
+type HotkeyPolymorphicParams =
+  | Hotkey.Polymorphic.Common.Index
+  | Hotkey.Polymorphic.Sequence.Index;
+
+export interface SuperHotkey {
+  (hotkey: HotkeyPolymorphicParams, featureOption: FeatureOption.External.Union): void;
+
+  // TODO: 其他 API 待完善
+
+  bindDOMMethod(
+    hotkey: HotkeyPolymorphicParams,
+    options: FeatureOption.External.DOMMethod
+  ): void;
+  bindCallback(
+    hotkey: HotkeyPolymorphicParams,
+    options: FeatureOption.External.Callback
+  ): void;
+
+  // TODO: 卸载后的返回值还需待确认。（throw？或是返回已成功卸载的某些热键值？或是返回 true，代表着全部卸载成功？）
+  // TODO: 重载还需进一步重写
+
+  /**
+   * 不传参数则默认为「卸载所有热键」
+   */
+  unbind(): void;
+  unbind(
+    hotkey: HotkeyPolymorphicParams,
+    featureCondition?: FeatureOption.Condition
+  ): void;
+
+  /**
+   * 不传参数则默认为「卸载所有与 `domMethod` 相关的热键」
+   */
+  unbindDOMMethod(): void;
+  unbindDOMMethod(
+    hotkey: HotkeyPolymorphicParams,
+    condition?: PartialDeep<FeatureOption.External.DOMMethod>
+  ): void;
+
+  /**
+   * 不传参数则默认为「卸载所有与 `callback` 相关的热键」
+   */
+  unbindCallback(): void;
+  unbindCallback(
+    hotkey: HotkeyPolymorphicParams,
+    conditions: PartialDeep<FeatureOption.External.Callback>
+  ): void;
+
+  internal: {
+    // unbind(): void;
+    bind(
+      hotkey: HotkeyConfig['keyComb'],
+      featureOption: FeatureOption.External.Union
+    ): void;
+  };
+}
 
 const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotkey>>()(
   (hotkey, featureOption) => {
-    Object.assign(featureOption.options.trigger || {}, defaultTriggerOptions);
+    const filteredFeatureOption: FeatureOption.Internal.Union = (() => {
+      Object.assign(featureOption.options.trigger || {}, defaultTriggerOptions);
+
+      return featureOption as FeatureOption.Internal.Union;
+    })();
 
     // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
     const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      keyCombination: hotkeyConfigPool.utils.convertToInternalKeyCombination(hotkey),
-      feature: featureOption
+      keyComb: hotkeyConfigPool.utils.convertToInternalKeyComb(hotkey),
+      feature: filteredFeatureOption
     });
 
     if (addSuccessfulHotkeyId) {
@@ -48,7 +106,7 @@ superHotkey.bindDOMMethod = (hotkey, options) => {
 superHotkey.unbind = (
   ...args:
     | []
-    | [hotkey: PolymorphicHotkeyParams, featureCondition?: UnbindFeatureCondition]
+    | [hotkey: HotkeyPolymorphicParams, featureCondition?: FeatureOption.Condition]
 ) => {
   const defaultAllUnbind = args.length === 0;
 
@@ -60,7 +118,7 @@ superHotkey.unbind = (
     // 从热键配置池中删除
     const completelyRemoveConfigs = hotkeyConfigPool.remove({
       feature: featureCondition,
-      keyCombination: hotkeyConfigPool.utils.convertToInternalKeyCombination(hotkey)
+      keyComb: hotkeyConfigPool.utils.convertToInternalKeyComb(hotkey)
     });
 
     // 再根据热键池中可能整个删掉的配置来取消按键监听
@@ -77,7 +135,10 @@ superHotkey.unbind = (
 superHotkey.unbindDOMMethod = (
   ...args:
     | []
-    | [hotkey: PolymorphicHotkeyParams, condition?: PartialDeep<DOMMethodOptions>]
+    | [
+        hotkey: HotkeyPolymorphicParams,
+        condition?: PartialDeep<FeatureOption.External.DOMMethod>
+      ]
 ) => {
   const defaultAllUnbind = args.length === 0;
 
@@ -96,7 +157,10 @@ superHotkey.unbindDOMMethod = (
 superHotkey.unbindCallback = (
   ...args:
     | []
-    | [hotkey: PolymorphicHotkeyParams, condition?: PartialDeep<CallbackOptions>]
+    | [
+        hotkey: HotkeyPolymorphicParams,
+        condition?: PartialDeep<FeatureOption.External.Callback>
+      ]
 ) => {
   const defaultAllUnbind = args.length === 0;
 
@@ -119,8 +183,8 @@ superHotkey.internal = {
 
     // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
     const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      keyCombination: hotkey,
-      feature: featureOption
+      keyComb: hotkey,
+      feature: featureOption as any
     });
 
     if (addSuccessfulHotkeyId) {

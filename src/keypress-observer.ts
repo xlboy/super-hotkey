@@ -1,49 +1,28 @@
 import type { F } from 'ts-toolbelt';
 
 import type { DefaultNormalKey } from './constants/keyboard-key';
-import type { HotkeyConfig } from './data-pool/hotkey-config-poll';
-import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
-import type { KeypressRecord } from './data-pool/keypress-record-poll';
-import { matcher } from './matcher';
-import type { UnifiedFeature } from './types/entrance';
-import type { BaseOptions, TriggerMode } from './types/option';
+import type { HotkeyConfig } from './hotkey-config-poll';
+import { hotkeyConfigPool } from './hotkey-config-poll';
+import { shortPressMatcher } from './matcher/short-press';
+import type FeatureOption from './types/feature-option';
 import { filterTargetElementToObserve, getPressedModifierKeys } from './utils/base';
 
-class HotkeyListeners {
-  private list: Array<
-    { hotkeyId: HotkeyConfig['id']; isLongPressHotkey: boolean } & Partial<
-      Record<TriggerMode, F.Function>
-    >
-  > = [];
-
-  public add(item: typeof this.list[number]) {
-    this.list.push(item);
-  }
-
-  public findByHotkeyId(hotkeyId: HotkeyConfig['id']) {
-    const foundTarget = this.list.find(item => item.hotkeyId === hotkeyId);
-
-    return foundTarget;
-  }
-  public removeByHotkeyId(hotkeyId: HotkeyConfig['id']) {
-    const indexToRemove = this.list.findIndex(item => item.hotkeyId === hotkeyId);
-
-    if (indexToRemove !== -1) {
-      this.list.splice(indexToRemove, 1);
-    }
-  }
-}
+type TriggerMode = FeatureOption.Internal.TriggerOptions['mode'];
 
 class KeypressObserver {
-  private hotkeyListeners = new HotkeyListeners();
+  private listenerMap = new Map<
+    HotkeyConfig['id'],
+    {
+      isLongPressHotkey: boolean;
+    } & Partial<Record<TriggerMode, F.Function>>
+  >();
 
   public observeByHotkeyId(hotkeyId: HotkeyConfig['id']) {
-    const { feature } = hotkeyConfigPool.findById(hotkeyId)!;
-    const targetElement = filterTargetElementToObserve(feature as UnifiedFeature);
+    const { feature, keyComb } = hotkeyConfigPool.findById(hotkeyId)!;
+    const isLongPressHotkey = keyComb.type === 'common-long-press';
+    const targetElement = filterTargetElementToObserve(feature);
     // TODO: 类型待完善，实际上在入库前， options-trigger 肯定是有默认值的
-    const triggerOptions = feature.options.trigger!;
-
-    const isLongPressHotkey = triggerOptions.isLongPress!;
+    const triggerOptions = feature.options.trigger;
 
     if (isLongPressHotkey) {
       const keyDownListener = getListenerByTriggerMode('keydown');
@@ -61,25 +40,23 @@ class KeypressObserver {
         triggerOptions.capture
       );
 
-      this.hotkeyListeners.add({
-        hotkeyId,
+      this.listenerMap.set(hotkeyId, {
         isLongPressHotkey: true,
         keydown: keyDownListener,
         keyup: keyUpListener
       });
     } else {
-      const listener = getListenerByTriggerMode(triggerOptions.mode!);
+      const listener = getListenerByTriggerMode(triggerOptions.mode);
 
       targetElement.addEventListener(
-        triggerOptions.mode!,
+        triggerOptions.mode,
         listener as any,
         triggerOptions.capture
       );
 
-      this.hotkeyListeners.add({
-        hotkeyId,
+      this.listenerMap.set(hotkeyId, {
         isLongPressHotkey: false,
-        [triggerOptions.mode!]: listener
+        [triggerOptions.mode]: listener
       });
     }
 
@@ -87,23 +64,20 @@ class KeypressObserver {
 
     function getListenerByTriggerMode(triggerMode: TriggerMode) {
       return (event: KeyboardEvent) => {
-        const latestKeypressRecord: KeypressRecord = {
-          triggerMode,
-          targetElement,
-          normalKey: event.key as DefaultNormalKey,
+        shortPressMatcher.match(event, {
+          hotkeyId,
           modifierKeys: getPressedModifierKeys(event),
-          timeStamp: event.timeStamp,
-          hotkeyId
-        };
-
-        matcher.match(event, isLongPressHotkey, latestKeypressRecord);
+          normalKey: event.key as DefaultNormalKey,
+          targetElement,
+          timeStamp: event.timeStamp
+        });
       };
     }
   }
 
   public stopObserve(params: {
     targetElement: Window | HTMLElement;
-    triggerOptions: BaseOptions['trigger'];
+    triggerOptions: FeatureOption.Internal.TriggerOptions;
     hotkeyId: HotkeyConfig['id'];
   }) {
     const { hotkeyId, targetElement, triggerOptions } = params;
@@ -117,19 +91,19 @@ class KeypressObserver {
           'keydown',
           keyboardListenerMap['keydown']!,
           // TODO: 关于长按系列的热键，是否需要 capture，还需待定
-          triggerOptions!.capture
+          triggerOptions.capture
         );
         targetElement.removeEventListener(
           'keyup',
           keyboardListenerMap['keyup']!,
           // TODO: 关于长按系列的热键，是否需要 capture，还需待定
-          triggerOptions!.capture
+          triggerOptions.capture
         );
       } else {
         targetElement.removeEventListener(
-          triggerOptions!.mode!,
-          keyboardListenerMap[triggerOptions!.mode!]!,
-          triggerOptions!.capture
+          triggerOptions.mode,
+          keyboardListenerMap[triggerOptions.mode]!,
+          triggerOptions.capture
         );
       }
     }

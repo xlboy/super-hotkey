@@ -7,10 +7,3 @@ export type ExtractFunctionFromPolymorphicType</* Polymorphic-Type */ PT> = PT e
 }
   ? (...args: A) => R
   : never;
-
-export type RenameKeyOfObject<T, K extends keyof T, N extends string> = Pick<
-  T,
-  Exclude<keyof T, K>
-> & {
-  [P in N]: T[K];
-};

@@ -1,5 +1,7 @@
+import type { ReadonlyDeep } from 'type-fest';
+
 import type { DefaultModifierKey } from '../constants/keyboard-key';
-import type { UnifiedFeature } from '../types/entrance';
+import type FeatureOption from '../types/feature-option';
 
 export function getPressedModifierKeys(event: KeyboardEvent): DefaultModifierKey[] {
   const pressedModifierKeys: DefaultModifierKey[] = [];
@@ -24,42 +26,15 @@ export function getPressedModifierKeys(event: KeyboardEvent): DefaultModifierKey
 }
 
 export function filterTargetElementToObserve(
-  featureOption: UnifiedFeature
-): HTMLElement | Window {
-  let targetElement!: HTMLElement | Window;
-  const globalThisPolyfill: Window = getGlobalThis();
+  featureOption: FeatureOption.Internal.Union
+): HTMLElement | Document {
+  let targetElement!: HTMLElement | Document;
 
   if (featureOption.type === 'callback') {
-    targetElement = featureOption.options.targetElement || globalThisPolyfill;
+    targetElement = featureOption.options.targetElement || document;
   } else {
-    targetElement = featureOption.options.focusElement || globalThisPolyfill;
+    targetElement = featureOption.options.focusElement || document;
   }
 
   return targetElement;
-
-  /**
-   * @see https://github.com/alibaba/designable/blob/main/packages/shared/src/globalThisPolyfill.ts
-   * @returns
-   */
-  function getGlobalThis() {
-    try {
-      if (typeof self !== 'undefined') {
-        return self;
-      }
-    } catch (e) {}
-
-    try {
-      if (typeof globalThisPolyfill !== 'undefined') {
-        return globalThisPolyfill;
-      }
-    } catch (e) {}
-
-    try {
-      if (typeof global !== 'undefined') {
-        return global;
-      }
-    } catch (e) {}
-
-    return Function('return this')();
-  }
 }

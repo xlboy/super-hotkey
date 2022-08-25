@@ -1,8 +1,8 @@
-import type { DefaultKey } from './constants/keyboard-key';
-import type { HotkeyConfig } from './data-pool/hotkey-config-poll';
-import { hotkeyConfigPool } from './data-pool/hotkey-config-poll';
-import { dispatch } from './dispatch';
-import { filterTargetElementToObserve } from './utils/base';
+import type { DefaultKey } from '../constants/keyboard-key';
+import { dispatch } from '../dispatch';
+import type { HotkeyConfig } from '../hotkey-config-poll';
+import { hotkeyConfigPool } from '../hotkey-config-poll';
+import { filterTargetElementToObserve } from '../utils/base';
 
 class LongPressMatcher {
   private targetElKeyMap: WeakMap<
@@ -34,17 +34,12 @@ class LongPressMatcher {
       const configTargetElement = filterTargetElementToObserve(config.feature as any);
 
       if (configTargetElement === params.targetElement) {
-        if (
-          config.keyCombination.type === 'common' &&
-          config.feature.options.trigger?.isLongPress
-        ) {
-          for (const commonKeyComb of config.keyCombination.contents) {
+        if (config.keyComb.type === 'common-long-press') {
+          for (const commonKeyComb of config.keyComb.contents) {
             if (commonKeyComb.longPressTime! > 0) {
-              const allKeys = commonKeyComb.modifierKeys.concat(
-                commonKeyComb.normalKey as any
-              ) as DefaultKey[];
-
-              const allKeysSame = allKeys.every(key => downedKeys.includes(key));
+              const allKeysSame = config.keyComb.contents.every(key =>
+                downedKeys.includes(key)
+              );
 
               if (allKeysSame) {
                 const sameHotkeyAlreadyExists =

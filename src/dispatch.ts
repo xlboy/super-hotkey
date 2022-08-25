@@ -1,4 +1,4 @@
-import type { HotkeyConfig } from './data-pool/hotkey-config-poll';
+import type { HotkeyConfig } from './hotkey-config-poll';
 
 class EventDispatch {
   public dispatch(hotkeyConfigs: HotkeyConfig[], event: KeyboardEvent) {

@@ -2,50 +2,26 @@ import { filter, isEqual, pick } from 'lodash-es';
 import { nanoid } from 'nanoid';
 import type { ReadonlyDeep } from 'type-fest';
 
-import type { DefaultModifierKey, DefaultNormalKey } from '../constants/keyboard-key';
-import type { KeyCombination } from '../matcher';
-import type {
-  PolymorphicHotkeyParams,
-  UnbindFeatureCondition,
-  UnifiedFeature,
-  UnifiedKeySequence
-} from '../types/entrance';
-
-// 暂不分
-
-// type CommonKeyItem = {
-//   hotkey: Omit<UnifiedCommonKey, 'type'>;
-//   feature: UniformHotkeyOptions;
-// };
-
-// type KeySequenceItem = {
-//   hotkey: Omit<UnifiedKeySequence, 'type'>;
-//   feature: UniformHotkeyOptions;
-// };
-
-export interface InternalSequenceKeyCombination {
-  type: 'sequence';
-  sequences: Array<{
-    modifierKeys: DefaultModifierKey[];
-    normalKey: DefaultNormalKey;
-    interval: number;
-    // TODO: 暂不支持 长按
-  }>;
-}
+import type { KeyCombination } from './matcher/short-press';
+import type FeatureOption from './types/feature-option';
+import type { Hotkey } from './types/hotkey';
 
 export interface HotkeyConfig {
   id: string;
-  keyCombination:
+  keyComb:
     | {
-        type: 'common';
-        contents: Array<{
-          modifierKeys: DefaultModifierKey[];
-          normalKey: DefaultNormalKey;
-          longPressTime?: number;
-        }>;
+        type: 'common-long-press';
+        contents: Hotkey.Internal.CommonLongPress[];
       }
-    | InternalSequenceKeyCombination;
-  feature: UnifiedFeature;
+    | {
+        type: 'common-short-press';
+        contents: Hotkey.Internal.CommonShortPress[];
+      }
+    | {
+        type: 'sequence';
+        contents: Hotkey.Internal.Sequence[];
+      };
+  feature: FeatureOption.Internal.Union;
 }
 
 class HotkeyConfigPool {
@@ -60,7 +36,7 @@ class HotkeyConfigPool {
   }
 
   public add(
-    hotkeyConfig: Pick<HotkeyConfig, 'keyCombination' | 'feature'>
+    hotkeyConfig: Pick<HotkeyConfig, 'keyComb' | 'feature'>
   ): HotkeyConfig['id'] | false {
     const hotkeyId = nanoid();
 
@@ -74,13 +50,13 @@ class HotkeyConfigPool {
    * @returns 完全被移除的 `热键配置`
    */
   public remove(condition: {
-    keyCombination?: HotkeyConfig['keyCombination'];
-    feature?: UnbindFeatureCondition;
+    keyComb?: HotkeyConfig['keyComb'];
+    feature?: FeatureOption.Condition;
   }): HotkeyConfig[] {
     const conditionToRemove: Partial<HotkeyConfig> = {};
 
-    if (condition.keyCombination) {
-      conditionToRemove.keyCombination = condition.keyCombination;
+    if (condition.keyComb) {
+      conditionToRemove.keyComb = condition.keyComb;
     }
 
     if (condition.feature) {
@@ -97,14 +73,15 @@ class HotkeyConfigPool {
 
     for (const relatedHotkeyConfig of relatedHotkeyConfigs) {
       // 没传指定的 keyCombination 条件，则删所有与特性相关的配置
-      if (!conditionToRemove.keyCombination) {
+      if (!conditionToRemove.keyComb) {
         completelyRemoveConfigs.push(relatedHotkeyConfig);
         removeById.call(this, relatedHotkeyConfig.id);
       } else {
         // TODO: 为什么这里不能收缩类型？
+
         if (
-          relatedHotkeyConfig.keyCombination.type === 'common' &&
-          conditionToRemove.keyCombination.type === 'common'
+          relatedHotkeyConfig.keyComb.type === '' &&
+          conditionToRemove.keyComb.type === 'common'
         ) {
           const relatedCommonHotkeys = relatedHotkeyConfig.keyCombination.contents;
           const conditionOfCommonHotkeys = conditionToRemove.keyCombination.contents;
@@ -164,10 +141,10 @@ class HotkeyConfigPool {
     }
   }
 
-  public findById(id: HotkeyConfig['id']): ReadonlyDeep<HotkeyConfig> | undefined {
+  public findById(id: HotkeyConfig['id']): HotkeyConfig | undefined {
     const foundHotkeyConfig = this.hotkeyConfigs.find(config => config.id === id);
 
-    return foundHotkeyConfig as ReadonlyDeep<HotkeyConfig> | undefined;
+    return foundHotkeyConfig;
   }
 
   public update() {}
@@ -195,12 +172,14 @@ class HotkeyConfigPool {
   public get utils() {
     return {
       getSuitedHotkeyConfig: getSuitedHotkeyConfig.bind(this),
-      convertToInternalKeyCombination: convertToInternalKeyCombination.bind(this)
+      convertToInternalKeyComb: convertToInternalKeyComb.bind(this)
     };
 
-    function convertToInternalKeyCombination(
-      polymorphicHotkey: PolymorphicHotkeyParams
-    ): HotkeyConfig['keyCombination'] {
+    function convertToInternalKeyComb(
+      polymorphicHotkey:
+        | Hotkey.Polymorphic.Common.Index
+        | Hotkey.Polymorphic.Sequence.Index
+    ): HotkeyConfig['keyComb'] {
       return {} as any;
     }
 
@@ -219,14 +198,16 @@ class HotkeyConfigPool {
       };
 
       this.hotkeyConfigs.forEach(config => {
-        if (config.keyCombination.type === 'common') {
+        if (['common-long-press', 'common-short-press'].includes(config.keyComb.type)) {
           const [, lastOneKeyComb] = lastTwoKeyCombinations;
 
-          // TODO: 如果 单个 common-contents 里出现多个相同的热键，则默认当作同一个。所以 break
-          for (const commonKeyComb of config.keyCombination.contents) {
-            if (isKeyCombEqual(lastOneKeyComb, commonKeyComb)) {
-              suitedHotkeyConfig.perfectMatchedCommons.push(config);
-              break;
+          if (config.keyComb.type === 'common-short-press') {
+            // TODO: 如果 单个 common-contents 里出现多个相同的热键，则默认当作同一个。所以 break
+            for (const commonKeyComb of config.keyComb.contents) {
+              if (isKeyCombEqual(lastOneKeyComb, commonKeyComb)) {
+                suitedHotkeyConfig.perfectMatchedCommons.push(config);
+                break;
+              }
             }
           }
         } else if (config.keyCombination.type === 'sequence') {

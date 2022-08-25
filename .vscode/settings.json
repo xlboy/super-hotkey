@@ -19,5 +19,6 @@
   },
   "[typescriptreact]": {
     "editor.formatOnSave": false
-  }
+  },
+  "commentTranslate.source": "Google"
 }

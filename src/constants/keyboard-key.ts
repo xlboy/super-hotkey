@@ -10,7 +10,7 @@ import { defineVariables } from '../types/base';
 
 const defaultModifierKeys = ['Shift', 'Control', 'Alt', 'Meta'] as const;
 
-export const enhancedModifierKeyMap = defineVariables<
+export const extendedModifierKeyMap = defineVariables<
   Record<string, DefaultModifierKey | DefaultModifierKey[]>
 >()({
   '⌘': 'Meta',
@@ -18,6 +18,7 @@ export const enhancedModifierKeyMap = defineVariables<
   Cmd: 'Meta',
   Mod: ['Meta', 'Control'],
   Windows: 'Meta',
+  Ctrl: 'Control',
   '⌃': 'Control',
   Option: 'Alt',
   '⌥': 'Alt',
@@ -26,9 +27,9 @@ export const enhancedModifierKeyMap = defineVariables<
 
 export type DefaultModifierKey = typeof defaultModifierKeys[number];
 
-export type EnhancedModifierKey = keyof typeof enhancedModifierKeyMap;
+export type ExtendedModifierKey = keyof typeof extendedModifierKeyMap;
 
-export type MergedModifierKey = DefaultModifierKey | EnhancedModifierKey;
+export type MergedModifierKey = DefaultModifierKey | ExtendedModifierKey;
 //#endregion  //*======== modifier ===========
 
 //#region  //*=========== normal ===========
@@ -207,7 +208,7 @@ export const defaultNormalKeys = [
   'VolumeUp'
 ] as const;
 
-export const enhancedNormalKeyMap = defineVariables<Record<string, DefaultNormalKey>>()({
+export const extendedNormalKeyMap = defineVariables<Record<string, DefaultNormalKey>>()({
   '⇪': 'CapsLock',
   '↩︎': 'Enter',
   '←': 'ArrowLeft',
@@ -220,11 +221,11 @@ export const enhancedNormalKeyMap = defineVariables<Record<string, DefaultNormal
   Esc: 'Escape'
 });
 
-export type EnhancedNormalKey = keyof typeof enhancedNormalKeyMap;
+export type ExtendedNormalKey = keyof typeof extendedNormalKeyMap;
 
 export type DefaultNormalKey = typeof defaultNormalKeys[number];
 
-export type MergedNormalKey = EnhancedNormalKey | DefaultNormalKey;
+export type MergedNormalKey = ExtendedNormalKey | DefaultNormalKey;
 //#endregion  //*======== normal ===========
 
 export type DefaultKey = DefaultNormalKey | DefaultModifierKey;
