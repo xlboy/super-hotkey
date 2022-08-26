@@ -1,44 +1,47 @@
 import type { LiteralUnion } from 'type-fest';
 
 import type {
-  DefaultModifierKey,
-  DefaultNormalKey,
-  MergedModifierKey,
-  MergedNormalKey
-} from '../constants/keyboard-key';
+  DefaultModifierCode,
+  DefaultNormalCode,
+  MergedModifierCode,
+  MergedNormalCode
+} from '../constants/keyboard-code';
 
-export namespace Hotkey {
+namespace Hotkey {
   export namespace Internal {
-    export type CommonShortPress = {
-      modifierKeys: DefaultModifierKey[];
-      normalKey: DefaultNormalKey;
-    };
+    export interface BaseCode {
+      modifierCodes: MergedModifierCode[];
+      normalCodes: MergedNormalCode[];
+    }
 
-    export type CommonLongPress = {
-      keys: Array<DefaultNormalKey | DefaultModifierKey>;
+    export interface CommonShortPress extends BaseCode {}
+
+    export interface CommonLongPress extends BaseCode {
       longPressTime: number;
-    };
+    }
 
     export interface Sequence {
-      modifierKeys: DefaultModifierKey[];
-      normalKey: DefaultNormalKey;
+      modifierKeys: DefaultModifierCode[];
+      normalKey?: DefaultNormalCode;
       interval: number | 'unlimited-time';
     }
+
+    export type KeyPressTypes = ['longPress', 'shortPress'];
   }
 
   export namespace Polymorphic {
     namespace Modifier {
-      export type Str = LiteralUnion<MergedModifierKey, string>;
+      export type Str = LiteralUnion<MergedModifierCode, string>;
 
-      export type Arr = MergedModifierKey[];
+      export type Arr = MergedModifierCode[];
     }
 
     export namespace Common {
-      type Str = LiteralUnion<MergedModifierKey | MergedNormalKey, string>;
+      type Str = LiteralUnion<MergedModifierCode | MergedNormalCode, string>;
 
       type Obj = {
         modifierKey?: Modifier.Str | Modifier.Arr;
-        normalKey?: MergedNormalKey;
+        normalKey?: MergedNormalCode;
         /**
          * 长按时长
          * 开启后，不可设置 `trigger-mode`
@@ -66,11 +69,11 @@ export namespace Hotkey {
     }
 
     export namespace Sequence {
-      type Str = LiteralUnion<MergedModifierKey | MergedNormalKey, string>;
+      type Str = LiteralUnion<MergedModifierCode | MergedNormalCode, string>;
 
       type Obj = {
         modifierKey?: Modifier.Str | Modifier.Arr;
-        normalKey?: MergedNormalKey;
+        normalKey?: MergedNormalCode;
         /**
          * 距离下一轮热键的间隔时长，单位为 `ms`
          *
@@ -95,3 +98,5 @@ export namespace Hotkey {
     }
   }
 }
+
+export default Hotkey;

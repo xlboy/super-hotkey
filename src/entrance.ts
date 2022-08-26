@@ -1,14 +1,13 @@
 import type { PartialDeep } from 'type-fest';
 
-import { defaultTriggerOptions } from './constants/base';
 import type { HotkeyConfig } from './hotkey-config-poll';
 import { hotkeyConfigPool } from './hotkey-config-poll';
-import { keypressObserver } from './keypress-observer';
+import { keyObserver } from './key-observer';
 import type { ExtractFunctionFromPolymorphicType } from './types/base';
 import { defineVariables } from './types/base';
 import type FeatureOption from './types/feature-option';
-import type { Hotkey } from './types/hotkey';
-import { filterTargetElementToObserve } from './utils/base';
+import type Hotkey from './types/hotkey';
+import { filterTargetElementToObserve } from './utils';
 
 type HotkeyPolymorphicParams =
   | Hotkey.Polymorphic.Common.Index
@@ -35,10 +34,10 @@ export interface SuperHotkey {
    * 不传参数则默认为「卸载所有热键」
    */
   unbind(): void;
-  unbind(
-    hotkey: HotkeyPolymorphicParams,
-    featureCondition?: FeatureOption.Condition
-  ): void;
+  unbind(params: {
+    hotkey?: HotkeyPolymorphicParams;
+    featureCondition?: FeatureOption.Condition;
+  }): void;
 
   /**
    * 不传参数则默认为「卸载所有与 `domMethod` 相关的热键」
@@ -70,6 +69,13 @@ export interface SuperHotkey {
 const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotkey>>()(
   (hotkey, featureOption) => {
     const filteredFeatureOption: FeatureOption.Internal.Union = (() => {
+      const defaultTriggerOptions: FeatureOption.Internal.TriggerOptions = {
+        allowRepeatWhenLongPress: true,
+        throttleDelay: 0,
+        capture: false,
+        mode: 'keydown'
+      };
+
       Object.assign(featureOption.options.trigger || {}, defaultTriggerOptions);
 
       return featureOption as FeatureOption.Internal.Union;
@@ -82,9 +88,7 @@ const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotk
     });
 
     if (addSuccessfulHotkeyId) {
-      keypressObserver.observeByHotkeyId(addSuccessfulHotkeyId);
-    } else {
-      throw new Error('添加失败，因 Id 重复');
+      keyObserver.startObserve(addSuccessfulHotkeyId);
     }
   }
 ) as unknown as SuperHotkey;
@@ -106,27 +110,29 @@ superHotkey.bindDOMMethod = (hotkey, options) => {
 superHotkey.unbind = (
   ...args:
     | []
-    | [hotkey: HotkeyPolymorphicParams, featureCondition?: FeatureOption.Condition]
+    | [{ hotkey?: HotkeyPolymorphicParams; featureCondition?: FeatureOption.Condition }]
 ) => {
   const defaultAllUnbind = args.length === 0;
 
   if (defaultAllUnbind) {
     hotkeyConfigPool.clear();
   } else {
-    const [hotkey, featureCondition] = args;
+    const { hotkey, featureCondition } = args[0];
 
-    // 从热键配置池中删除
-    const completelyRemoveConfigs = hotkeyConfigPool.remove({
+    const completelyRemoveConfig = hotkeyConfigPool.remove({
       feature: featureCondition,
-      keyComb: hotkeyConfigPool.utils.convertToInternalKeyComb(hotkey)
+      keyComb: hotkey && hotkeyConfigPool.utils.convertToInternalKeyComb(hotkey)
     });
 
     // 再根据热键池中可能整个删掉的配置来取消按键监听
-    completelyRemoveConfigs.forEach(removedConfig => {
-      keypressObserver.stopObserve({
-        hotkeyId: removedConfig.id,
-        targetElement: filterTargetElementToObserve(removedConfig.feature),
-        triggerOptions: removedConfig.feature.options.trigger
+    Object.entries(completelyRemoveConfig).forEach(([keyPressType, removedConfigs]) => {
+      removedConfigs.forEach(removedConfig => {
+        keyObserver.stopObserve({
+          keyPressType: keyPressType as Hotkey.Internal.KeyPressTypes[number],
+          hotkeyId: removedConfig.id,
+          targetElement: filterTargetElementToObserve(removedConfig.config.feature),
+          triggerOptions: removedConfig.config.feature.options.trigger
+        });
       });
     });
   }
@@ -147,9 +153,12 @@ superHotkey.unbindDOMMethod = (
   } else {
     const [hotkey, conditions] = args;
 
-    superHotkey.unbind(hotkey, {
-      type: 'domMethod',
-      options: conditions
+    superHotkey.unbind({
+      hotkey,
+      featureCondition: {
+        type: 'domMethod',
+        options: conditions
+      }
     });
   }
 };
@@ -169,26 +178,36 @@ superHotkey.unbindCallback = (
   } else {
     const [hotkey, conditions] = args;
 
-    superHotkey.unbind(hotkey, {
-      type: 'callback',
-      options: conditions
+    superHotkey.unbind({
+      hotkey,
+      featureCondition: { type: 'callback', options: conditions }
     });
   }
 };
 
 superHotkey.internal = {
   bind: (hotkey, featureOption) => {
-    featureOption.options.trigger ??= {};
-    Object.assign(featureOption.options.trigger, defaultTriggerOptions);
+    const filteredFeatureOption: FeatureOption.Internal.Union = (() => {
+      const defaultTriggerOptions: FeatureOption.Internal.TriggerOptions = {
+        allowRepeatWhenLongPress: true,
+        throttleDelay: 0,
+        capture: false,
+        mode: 'keydown'
+      };
+
+      featureOption.options.trigger ??= defaultTriggerOptions;
+
+      return featureOption as FeatureOption.Internal.Union;
+    })();
 
     // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
     const addSuccessfulHotkeyId = hotkeyConfigPool.add({
       keyComb: hotkey,
-      feature: featureOption as any
+      feature: filteredFeatureOption
     });
 
     if (addSuccessfulHotkeyId) {
-      keypressObserver.observeByHotkeyId(addSuccessfulHotkeyId);
+      keyObserver.startObserve(addSuccessfulHotkeyId);
     } else {
       throw new Error('添加失败，因 Id 重复');
     }

@@ -7,3 +7,5 @@ export type ExtractFunctionFromPolymorphicType</* Polymorphic-Type */ PT> = PT e
 }
   ? (...args: A) => R
   : never;
+
+export type TargetElementToObserve = HTMLElement | Document;

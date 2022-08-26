@@ -1,154 +1,120 @@
-import { isEqual } from 'lodash-es';
-
-import type {
-  DefaultModifierKey,
-  DefaultNormalKey,
-  MergedModifierKey,
-  MergedNormalKey
-} from '../constants/keyboard-key';
+import type { DefaultModifierCode, DefaultNormalCode } from '../constants/keyboard-code';
+import { defaultModifierCodes } from '../constants/keyboard-code';
 import { dispatch } from '../dispatch';
-import type { HotkeyConfig } from '../hotkey-config-poll';
+import type { HotkeyConfig, HotkeyId } from '../hotkey-config-poll';
 import { hotkeyConfigPool } from '../hotkey-config-poll';
-import type { Hotkey } from '../types/hotkey';
+import type FeatureOption from '../types/feature-option';
+import { verifyCodeMatch } from '../utils';
 
-export interface KeyCombination {
-  modifierKeys: MergedModifierKey[];
-  normalKey: MergedNormalKey;
+export interface ShortPressKeyCombination {
+  modifierKeys: DefaultModifierCode[];
+  normalKey: DefaultNormalCode;
   timeStamp: number;
 }
 
+export type UnifiedCodeMap = {
+  normals: Set<DefaultNormalCode>;
+  modifiers: Set<DefaultModifierCode>;
+};
+
+type DownCodesMap = Record<HotkeyId, UnifiedCodeMap>;
+
 class ShortPressMatcher {
-  private targetElKeyCombMap = new WeakMap<EventTarget, Array<KeyCombination>>();
+  private downCodeMap: DownCodesMap = {};
+  private proxyDownCodesMap: DownCodesMap = {};
+  private upNormalCodesMap: Record<HotkeyId, Set<DefaultNormalCode>> = {};
 
-  public match(params: {
-    event: KeyboardEvent;
-    timeStamp: number;
-    normalKey: DefaultNormalKey;
-    modifierKeys: DefaultModifierKey[];
-    targetEl: HTMLElement | Document;
-    hotkeyId: HotkeyConfig['id'];
-  }) {
-    const { modifierKeys, normalKey, timeStamp, targetEl, event } = params;
+  public match = (
+    hotkeyId: HotkeyId,
+    event: KeyboardEvent,
+    triggerMode: FeatureOption.Internal.TriggerOptions['mode']
+  ) => {
+    if (event.repeat) return;
 
-    this.targetElKeyCombMap.set(
-      targetEl,
-      (this.targetElKeyCombMap.get(targetEl) || []).concat({
-        modifierKeys,
-        normalKey,
-        timeStamp
-      })
-    );
+    this.updateCode(hotkeyId, event, triggerMode);
 
-    const targetElKeyCombs = this.targetElKeyCombMap.get(targetEl)!;
+    if (triggerMode === 'keydown' && event.type === 'keydown') {
+      const hotkeyConfig = hotkeyConfigPool.findById(hotkeyId)!;
 
-    const suitedHotkeyConfig = hotkeyConfigPool.utils.getSuitedHotkeyConfig([
-      targetElKeyCombs.at(-2),
-      targetElKeyCombs.at(-1)!
-    ]);
-
-    const matchedSequence = this.sequenceMatcher(
-      targetElKeyCombs,
-      suitedHotkeyConfig.similarSequences
-    );
-
-    if (matchedSequence.usefulStartIndex !== undefined) {
-      this.removeUselessHistoryKeyCombsFromHead(
-        targetEl,
-        matchedSequence.usefulStartIndex
-      );
+      if (this.verifyDownCode(hotkeyConfig, hotkeyId)) {
+        dispatch.dispatch(hotkeyConfig, event);
+      }
     }
+  };
 
-    if (suitedHotkeyConfig.perfectMatchedCommons.length !== 0) {
-      dispatch.dispatch(suitedHotkeyConfig.perfectMatchedCommons, event);
-    }
+  private updateCode(
+    hotkeyId: HotkeyId,
+    event: KeyboardEvent,
+    triggerMode: FeatureOption.Internal.TriggerOptions['mode']
+  ) {
+    const downCode =
+      this.downCodeMap[hotkeyId] ||
+      (this.downCodeMap[hotkeyId] = { modifiers: new Set(), normals: new Set() });
 
-    if (matchedSequence.perfectlyMatchedConfigs.length !== 0) {
-      dispatch.dispatch(matchedSequence.perfectlyMatchedConfigs, event);
+    const proxyDownCode =
+      this.proxyDownCodesMap[hotkeyId] ||
+      (this.proxyDownCodesMap[hotkeyId] = { modifiers: new Set(), normals: new Set() });
+
+    const upNormalCodes =
+      this.upNormalCodesMap[hotkeyId] || (this.upNormalCodesMap[hotkeyId] = new Set());
+
+    const currentCode = event.code as any;
+    const isModifierCode = defaultModifierCodes.includes(currentCode);
+
+    if (triggerMode === 'keyup') {
+      if (event.type === 'keyup') {
+        if (!isModifierCode) {
+          upNormalCodes.add(currentCode);
+          proxyDownCode.normals.delete(currentCode);
+        } else {
+          proxyDownCode.modifiers.delete(currentCode);
+        }
+      } else {
+        if (isModifierCode) {
+          proxyDownCode.modifiers.add(currentCode);
+        } else {
+          proxyDownCode.normals.add(currentCode);
+        }
+      }
+    } else {
+      if (event.type === 'keyup') {
+        if (isModifierCode) {
+          downCode.modifiers.delete(currentCode);
+        } else {
+          downCode.normals.delete(currentCode);
+        }
+      } else {
+        if (isModifierCode) {
+          downCode.modifiers.add(currentCode);
+        } else {
+          downCode.normals.add(currentCode);
+        }
+      }
     }
   }
 
-  public sequenceMatcher(
-    targetElKeyCombs: Array<KeyCombination>,
-    similarSequenceConfigs: HotkeyConfig[]
-  ) {
-    const perfectlyMatchedConfigs: HotkeyConfig[] = [];
-    let usefulStartIndex: number | undefined = undefined;
+  private verifyDownCode(hotkeyConfig: HotkeyConfig, hotkeyId: HotkeyId) {
+    switch (hotkeyConfig.keyComb.type) {
+      case 'common':
+        for (const configKeyComb of hotkeyConfig.keyComb.contents) {
+          if (configKeyComb.type === 'shortPress') {
+            const downCode = this.downCodeMap[hotkeyId];
 
-    similarSequenceConfigs.forEach(similarConfig => {
-      const keyCombsOfSimilarConfig = similarConfig.keyComb
-        .contents as Hotkey.Internal.Sequence[];
+            const verifyResult = verifyCodeMatch(configKeyComb, {
+              modifiers: [...downCode.modifiers],
+              normals: [...downCode.normals]
+            });
 
-      for (
-        let targetElKeyCombIndex = targetElKeyCombs.length - 1;
-        targetElKeyCombIndex >= 0;
-        targetElKeyCombIndex--
-      ) {
-        const caudalKeyCombs = targetElKeyCombs.slice(targetElKeyCombIndex);
-
-        caudalKeyCombs.every((caudalKeyComb, caudalKeyCombIndex) => {
-          if (
-            isEqual(
-              caudalKeyComb.modifierKeys,
-              keyCombsOfSimilarConfig[caudalKeyCombIndex].modifierKeys
-            ) &&
-            isEqual(
-              caudalKeyComb.normalKey,
-              keyCombsOfSimilarConfig[caudalKeyCombIndex].normalKey
-            )
-          ) {
-            if (caudalKeyCombIndex === 0) {
-              return true;
-            }
-
-            const effectiveInterval =
-              /* 当前的尾部的时间戳 */ caudalKeyComb.timeStamp -
-                /* 上一个的尾部的时间戳 */ caudalKeyCombs[caudalKeyCombIndex - 1]
-                  .timeStamp <=
-              /* 键序列配置里要求的间隔 */ keyCombsOfSimilarConfig[caudalKeyCombIndex]
-                .interval;
-
-            if (effectiveInterval) {
-              // 当前的尾部的热键信息全部验证成功，可记录最小开始索引
-              if (caudalKeyCombIndex === caudalKeyCombs.length - 1) {
-                // 刷新最小起始索引
-                if (
-                  usefulStartIndex === undefined ||
-                  targetElKeyCombIndex < usefulStartIndex
-                ) {
-                  usefulStartIndex = targetElKeyCombIndex;
-                }
-
-                if (
-                  targetElKeyCombIndex === 0 &&
-                  caudalKeyCombs.length === keyCombsOfSimilarConfig.length
-                ) {
-                  perfectlyMatchedConfigs.push(similarConfig);
-                }
-              }
-
+            if (verifyResult.modifier.perfectMatch && verifyResult.normal.perfectMatch) {
               return true;
             }
           }
+        }
 
-          return false;
-        });
-      }
-    });
+        break;
+    }
 
-    return {
-      perfectlyMatchedConfigs,
-      usefulStartIndex
-    };
-  }
-
-  private removeUselessHistoryKeyCombsFromHead(
-    targetElement: EventTarget,
-    deleteCount: number
-  ) {
-    this.targetElKeyCombMap.set(
-      targetElement,
-      (this.targetElKeyCombMap.get(targetElement) || []).splice(0, deleteCount)
-    );
+    return false;
   }
 }
 

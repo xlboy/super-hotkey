@@ -1,154 +1,133 @@
-import type { DefaultKey } from '../constants/keyboard-key';
+import type { DefaultModifierCode, DefaultNormalCode } from '../constants/keyboard-code';
+import { defaultModifierCodes } from '../constants/keyboard-code';
 import { dispatch } from '../dispatch';
-import type { HotkeyConfig } from '../hotkey-config-poll';
+import type { HotkeyId } from '../hotkey-config-poll';
 import { hotkeyConfigPool } from '../hotkey-config-poll';
-import { filterTargetElementToObserve } from '../utils/base';
+import { verifyCodeMatch } from '../utils';
 
 class LongPressMatcher {
-  private targetElKeyMap: WeakMap<
-    EventTarget,
+  private downCodeMap: Record<
+    HotkeyId,
     {
-      downedKeys: Array<DefaultKey>;
-      hotkeysToFire: Array<{
-        type: 'common';
-        keys: DefaultKey[];
-        hotkeyId: HotkeyConfig['id'];
-        timeoutId: NodeJS.Timeout;
-        __flag__: Symbol;
-      }>;
+      normals: Set<DefaultNormalCode>;
+      modifiers: Set<DefaultModifierCode>;
     }
-  > = new WeakMap();
+  > = {};
+  private timerIdToFire: Record<HotkeyId, NodeJS.Timeout> = {};
+  public match = (hotkeyId: HotkeyId, event: KeyboardEvent): void => {
+    if (event.repeat) return;
 
-  public keyDown(params: {
-    key: DefaultKey;
-    targetElement: EventTarget;
-    event: KeyboardEvent;
-  }): void {
-    const { downedKeys, hotkeysToFire } = this.targetElKeyMap.get(
-      params.targetElement
-    ) || { downedKeys: [], hotkeysToFire: [] };
+    this.updateDownCode(hotkeyId, event);
 
-    downedKeys.push(params.key);
+    if (event.type === 'keydown') {
+      this.keyDownHandler(hotkeyId, event);
+    } else {
+      this.keyUpHandler(hotkeyId);
+    }
+  };
 
-    hotkeyConfigPool.forEach(config => {
-      const configTargetElement = filterTargetElementToObserve(config.feature as any);
+  private keyDownHandler = (hotkeyId: HotkeyId, event: KeyboardEvent): void => {
+    const downCodes = this.downCodeMap[hotkeyId];
+    const hotkeyConfig = hotkeyConfigPool.findById(hotkeyId);
 
-      if (configTargetElement === params.targetElement) {
-        if (config.keyComb.type === 'common-long-press') {
-          for (const commonKeyComb of config.keyComb.contents) {
-            if (commonKeyComb.longPressTime! > 0) {
-              const allKeysSame = config.keyComb.contents.every(key =>
-                downedKeys.includes(key)
-              );
+    if (hotkeyConfig && hotkeyConfig.keyComb.type === 'common') {
+      for (const configKeyComb of hotkeyConfig.keyComb.contents) {
+        if (configKeyComb.type !== 'longPress') continue;
 
-              if (allKeysSame) {
-                const sameHotkeyAlreadyExists =
-                  hotkeysToFire.findIndex(item => item.hotkeyId === config.id) !== -1;
+        if (configKeyComb.longPressTime > 0) {
+          const verifyResult = verifyCodeMatch(configKeyComb, {
+            modifiers: [...downCodes.modifiers],
+            normals: [...downCodes.normals]
+          });
 
-                if (!sameHotkeyAlreadyExists) {
-                  const __flag__ = Symbol();
+          if (verifyResult.modifier.perfectMatch && verifyResult.normal.perfectMatch) {
+            if (!this.timerIdToFire[hotkeyId]) {
+              let isAlreadyExecuted = false;
 
-                  hotkeysToFire.push({
-                    type: 'common',
-                    hotkeyId: config.id,
-                    keys: allKeys,
-                    __flag__,
-                    timeoutId: setTimeout(() => {
-                      this.removeHotkeyToFireByFlag({
-                        __flag__,
-                        targetElement: params.targetElement
-                      });
+              this.timerIdToFire[hotkeyId] = setTimeout(() => {
+                isAlreadyExecuted = true;
 
-                      this.commonHandler({
-                        hotkeyConfig: config as any,
-                        event: params.event
-                      });
-                    }, commonKeyComb.longPressTime)
-                  });
+                // 执行已达标的「长按热键」事件
+                dispatch.dispatch(hotkeyConfig, event);
+                // TODO: 可能要给 timer-delay 加点料
+              }, configKeyComb.longPressTime);
 
-                  setTimeout(() => {
-                    this.removeHotkeyToFireByFlag({
-                      targetElement: params.targetElement,
-                      __flag__
-                    });
-                  }, commonKeyComb.longPressTime);
+              setTimeout(() => {
+                if (!isAlreadyExecuted) {
+                  delete this.timerIdToFire[hotkeyId];
                 }
-              }
+              }, configKeyComb.longPressTime);
             }
+
+            break;
           }
         }
       }
-    });
+    }
+  };
 
-    this.targetElKeyMap.set(params.targetElement, {
-      downedKeys,
-      hotkeysToFire
-    });
-  }
+  private keyUpHandler = (hotkeyId: HotkeyId): void => {
+    const loosenDownCode = this.downCodeMap[hotkeyId];
+    const timerIdToFire = this.timerIdToFire[hotkeyId];
 
-  public keyUp(params: { key: DefaultKey; targetElement: EventTarget }): void {
-    const { downedKeys, hotkeysToFire } = this.targetElKeyMap.get(params.targetElement)!;
+    // 可能是从上一个 按键周期 那残留下来的
+    if (!loosenDownCode || !timerIdToFire) return;
 
-    removeDownedKey.call(this);
-    releaseHotkeyToFire.call(this);
+    const hotkeyConfig = hotkeyConfigPool.findById(hotkeyId);
 
-    this.targetElKeyMap.set(params.targetElement, {
-      downedKeys,
-      hotkeysToFire
-    });
+    if (hotkeyConfig && hotkeyConfig.keyComb.type === 'common') {
+      let isEffective = false;
 
-    return;
+      for (const configKeyComb of hotkeyConfig.keyComb.contents) {
+        if (configKeyComb.type !== 'longPress') continue;
 
-    function releaseHotkeyToFire(this: LongPressMatcher) {
-      for (
-        let hotkeyIndexToFire = hotkeysToFire.length - 1;
-        hotkeyIndexToFire >= 0;
-        hotkeyIndexToFire--
-      ) {
-        const hotkeyToFire = hotkeysToFire[hotkeyIndexToFire];
+        if (configKeyComb.longPressTime > 0) {
+          const verifyResult = verifyCodeMatch(configKeyComb, {
+            modifiers: [...loosenDownCode.modifiers],
+            normals: [...loosenDownCode.normals]
+          });
 
-        if (hotkeyToFire.keys.includes(params.key)) {
-          clearTimeout(hotkeyToFire.timeoutId);
-          hotkeysToFire.splice(hotkeyIndexToFire, 1);
+          if (verifyResult.modifier.onlySatisfied && verifyResult.normal.onlySatisfied) {
+            isEffective = true;
+
+            break;
+          }
         }
       }
+
+      if (!isEffective) {
+        clearTimeout(timerIdToFire);
+        delete this.timerIdToFire[hotkeyId];
+      }
     }
+  };
 
-    function removeDownedKey(this: LongPressMatcher) {
-      const downedKeyIndexToRemove = downedKeys.findIndex(
-        downedKey => downedKey === params.key
-      );
+  private updateDownCode(hotkeyId: HotkeyId, event: KeyboardEvent) {
+    const eventCode = event.code as any;
 
-      if (downedKeyIndexToRemove !== -1) {
-        downedKeys.splice(downedKeyIndexToRemove, 1);
+    const downCodes =
+      this.downCodeMap[hotkeyId] ||
+      (this.downCodeMap[hotkeyId] = {
+        normals: new Set<DefaultNormalCode>(),
+        modifiers: new Set<DefaultModifierCode>()
+      });
+
+    const isModifierCode = (defaultModifierCodes as unknown as any[]).includes(eventCode);
+
+    if (event.type === 'keydown') {
+      if (isModifierCode) {
+        downCodes.modifiers.add(eventCode);
+      } else {
+        downCodes.normals.add(eventCode);
+      }
+    } else {
+      if (isModifierCode) {
+        downCodes.modifiers.delete(eventCode);
+      } else {
+        downCodes.normals.delete(eventCode);
       }
     }
   }
-
-  private commonHandler = (params: {
-    hotkeyConfig: HotkeyConfig;
-    event: KeyboardEvent;
-  }) => {
-    dispatch.dispatch([params.hotkeyConfig], params.event);
-  };
-
-  private removeHotkeyToFireByFlag = (params: {
-    targetElement: EventTarget;
-    __flag__: Symbol;
-  }) => {
-    const { hotkeysToFire, downedKeys } = this.targetElKeyMap.get(params.targetElement)!;
-
-    const indexToRemove = hotkeysToFire.findIndex(
-      item => item.__flag__ === params.__flag__
-    );
-
-    hotkeysToFire.splice(indexToRemove, 1);
-
-    this.targetElKeyMap.set(params.targetElement, {
-      downedKeys,
-      hotkeysToFire
-    });
-  };
 }
 
 export const longPressMatcher = new LongPressMatcher();

@@ -1,14 +1,14 @@
 import type { PartialDeep } from 'type-fest';
 
-export namespace FeatureOption {
+namespace FeatureOption {
   export namespace Internal {
     export type TriggerOptions = Required<NonNullable<Base['trigger']>>; // RequiredDeep<Pick<Base, 'trigger'>>;
+
+    export type Union = Generator<Callback, DOMMethod>;
 
     type Callback = _Callback & { trigger: TriggerOptions };
 
     type DOMMethod = _DOMMethod & { trigger: TriggerOptions };
-
-    export type Union = Generator<Callback, DOMMethod>;
   }
 
   export namespace External {
@@ -44,7 +44,7 @@ export namespace FeatureOption {
        */
       throttleDelay?: number;
       /**
-       * When the hotkey is in the `long-press` state, repeated trigger is allowed
+       * When the hotkey is in the `longPress` state, repeated trigger is allowed
        * @default true
        */
       allowRepeatWhenLongPress?: boolean;
@@ -99,7 +99,7 @@ export namespace FeatureOption {
 
   interface _DOMMethod extends Base {
     /**
-     * @see https://devejjjjloper.mozilla.org/en-US/docs/Web/API/HTMLElement#methods
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement#methods
      */
     method: 'blur' | 'click' | 'focus';
     /**
