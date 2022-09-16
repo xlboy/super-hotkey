@@ -1,4 +1,3 @@
-// import type { DefaultModifierKey } from './constants/keyboard-key';
 import type {
   DefaultModifierCode,
   DefaultNormalCode,
@@ -13,18 +12,12 @@ import type Hotkey from './types/hotkey';
 export function filterTargetElementToObserve(
   featureOption: FeatureOption.Internal.Union
 ): TargetElementToObserve {
-  let targetElement!: TargetElementToObserve;
-
-  if (featureOption.type === 'callback') {
-    targetElement = featureOption.options.targetElement || document;
-  } else {
-    targetElement = featureOption.options.focusElement || document;
-  }
-
-  return targetElement;
+  return featureOption.type === 'callback'
+    ? featureOption.options.targetElement!
+    : featureOption.options.focusElement!;
 }
 
-export function isMacPlatform() {
+export function isApplePlatform() {
   return /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 }
 

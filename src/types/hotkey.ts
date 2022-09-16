@@ -1,11 +1,6 @@
 import type { LiteralUnion } from 'type-fest';
 
-import type {
-  DefaultModifierCode,
-  DefaultNormalCode,
-  MergedModifierCode,
-  MergedNormalCode
-} from '../constants/keyboard-code';
+import type { MergedModifierCode, MergedNormalCode } from '../constants/keyboard-code';
 
 namespace Hotkey {
   export namespace Internal {
@@ -20,9 +15,7 @@ namespace Hotkey {
       longPressTime: number;
     }
 
-    export interface Sequence {
-      modifierKeys: DefaultModifierCode[];
-      normalKey?: DefaultNormalCode;
+    export interface Sequence extends BaseCode {
       interval: number | 'unlimited-time';
     }
 
@@ -39,12 +32,12 @@ namespace Hotkey {
     export namespace Common {
       type Str = LiteralUnion<MergedModifierCode | MergedNormalCode, string>;
 
-      type Obj = {
+      export type Obj = {
         modifierKey?: Modifier.Str | Modifier.Arr;
-        normalKey?: MergedNormalCode;
+        normalKey?: MergedNormalCode | MergedNormalCode[];
         /**
          * 长按时长
-         * 开启后，不可设置 `trigger-mode`
+         * 开启后，不可设置 `trigger.mode`
          *
          * @default false
          */
@@ -52,7 +45,7 @@ namespace Hotkey {
       };
 
       export type Index =
-        /* Common-Key-Str:   ------- 'Ctrl+Shift+b, Ctrl+c, d' ------- */
+        /* Common-Key-Str:   ------- 'Ctrl+c, Ctrl+Shift+b+c, d' ------- */
         | Str
         /* Common-Key-Obj:   ------- { modifierKey: ['Ctrl', 'Shift'], normalKey: 'b' } ------- */
         | Obj
@@ -84,8 +77,8 @@ namespace Hotkey {
 
       export type Index =
         /* Sequence-Key-Str:  ------- 'Ctrl+b c a' ------- */
-        | Str
-        /* 
+        Str;
+      /* 
           Sequence-Key-Arr:
           [
             { modifierKey: ['Ctrl'], normalKey: 'b' }, 
@@ -94,7 +87,7 @@ namespace Hotkey {
             'Shift+e'
           ]
         */
-        | [Omit<Obj, 'interval'> | Str, ...Array<Obj | Str>];
+      // | [Omit<Obj, 'interval'> | Str, ...Array<Obj | Str>];
     }
   }
 }

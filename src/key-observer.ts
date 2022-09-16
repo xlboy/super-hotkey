@@ -1,6 +1,6 @@
+import { pick } from 'lodash-es';
 import type { F } from 'ts-toolbelt';
 
-import type { DefaultModifierCode } from './constants/keyboard-code';
 import { defaultModifierCodes } from './constants/keyboard-code';
 import type { HotkeyConfig, HotkeyId } from './hotkey-config-poll';
 import { hotkeyConfigPool } from './hotkey-config-poll';
@@ -9,7 +9,7 @@ import { shortPressMatcher } from './matcher/short-press';
 import type { TargetElementToObserve } from './types/base';
 import type FeatureOption from './types/feature-option';
 import type Hotkey from './types/hotkey';
-import { filterTargetElementToObserve, isMacPlatform } from './utils';
+import { filterTargetElementToObserve, isApplePlatform } from './utils';
 
 type TriggerMode = FeatureOption.Internal.TriggerOptions['mode'];
 
@@ -24,6 +24,7 @@ class KeyObserver {
 
   public startObserve(hotkeyId: HotkeyId) {
     const hotkeyConfig = hotkeyConfigPool.findById(hotkeyId)!;
+
     const keyPressTypes = getKeyPressType.call(this, hotkeyConfig.keyComb);
     const targetElement = filterTargetElementToObserve(hotkeyConfig.feature);
     const triggerOptions = hotkeyConfig.feature.options.trigger;
@@ -94,22 +95,31 @@ class KeyObserver {
       const artificialKeyUpTimerId: Record<KeyboardEvent['code'], NodeJS.Timeout> = {};
 
       return (event: KeyboardEvent) => {
-        if (event.type === 'keydown') {
-          // 解决 meta 键在 mac 系统下松开没响应的情况
-          if (
-            event.metaKey &&
-            isMacPlatform() &&
-            !defaultModifierCodes.includes(event.code as DefaultModifierCode)
-          ) {
+        const isKeyDownEvent = event.type === 'keydown';
+
+        if (isKeyDownEvent) {
+          const metaKeyIsPressed = event.metaKey;
+          const isNormalCode = !defaultModifierCodes.includes(event.code as any);
+
+          // 解决 meta 键在 mac 系统下松开时没监听到的情况
+          // see: https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
+          if (metaKeyIsPressed && isApplePlatform() && isNormalCode) {
             if (Reflect.has(artificialKeyUpTimerId, event.code)) {
               clearTimeout(artificialKeyUpTimerId[event.code]);
             }
 
             artificialKeyUpTimerId[event.code] = setTimeout(() => {
               delete artificialKeyUpTimerId[event.code];
-              targetElement.dispatchEvent(new KeyboardEvent('keyup', { ...event }));
-            }, 50);
+              targetElement.dispatchEvent(
+                new KeyboardEvent('keyup', pick(event, ['code', 'keyCode', 'key']))
+              );
+              // TODO: 300ms是不一定的…
+            }, 300);
           }
+        }
+
+        if (isKeyDownEvent && event.repeat && !triggerOptions.allowRepeatWhenLongPress) {
+          return;
         }
 
         if (keyPressType === 'longPress') {

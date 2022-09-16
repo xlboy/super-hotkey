@@ -56,14 +56,6 @@ export interface SuperHotkey {
     hotkey: HotkeyPolymorphicParams,
     conditions: PartialDeep<FeatureOption.External.Callback>
   ): void;
-
-  internal: {
-    // unbind(): void;
-    bind(
-      hotkey: HotkeyConfig['keyComb'],
-      featureOption: FeatureOption.External.Union
-    ): void;
-  };
 }
 
 const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotkey>>()(
@@ -76,19 +68,37 @@ const superHotkey = defineVariables<ExtractFunctionFromPolymorphicType<SuperHotk
         mode: 'keydown'
       };
 
-      Object.assign(featureOption.options.trigger || {}, defaultTriggerOptions);
+      featureOption.options.trigger = {
+        ...defaultTriggerOptions,
+        ...(featureOption.options.trigger || {})
+      };
+
+      if (featureOption.type === 'callback') {
+        featureOption.options.autoStopPropagation ??= false;
+        featureOption.options.autoPreventDefault ??= true;
+        featureOption.options.targetElement ??= document;
+      } else {
+        featureOption.options.autoPreventDefault ??= false;
+        featureOption.options.autoStopPropagation ??= false;
+        featureOption.options.focusElement ??= document;
+      }
 
       return featureOption as FeatureOption.Internal.Union;
     })();
 
-    // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
-    const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      keyComb: hotkeyConfigPool.utils.convertToInternalKeyComb(hotkey),
-      feature: filteredFeatureOption
-    });
+    const keyComb = hotkeyConfigPool.utils.convertToInternalKeyComb(hotkey);
 
-    if (addSuccessfulHotkeyId) {
-      keyObserver.startObserve(addSuccessfulHotkeyId);
+    if (keyComb) {
+      const addSuccessfulHotkeyId = hotkeyConfigPool.add({
+        keyComb,
+        feature: filteredFeatureOption
+      });
+
+      if (addSuccessfulHotkeyId) {
+        keyObserver.startObserve(addSuccessfulHotkeyId);
+      }
+    } else {
+      throw new Error('热键配置参数不合法');
     }
   }
 ) as unknown as SuperHotkey;
@@ -182,35 +192,6 @@ superHotkey.unbindCallback = (
       hotkey,
       featureCondition: { type: 'callback', options: conditions }
     });
-  }
-};
-
-superHotkey.internal = {
-  bind: (hotkey, featureOption) => {
-    const filteredFeatureOption: FeatureOption.Internal.Union = (() => {
-      const defaultTriggerOptions: FeatureOption.Internal.TriggerOptions = {
-        allowRepeatWhenLongPress: true,
-        throttleDelay: 0,
-        capture: false,
-        mode: 'keydown'
-      };
-
-      featureOption.options.trigger ??= defaultTriggerOptions;
-
-      return featureOption as FeatureOption.Internal.Union;
-    })();
-
-    // TODO: 需要判断一下传入的 Id 是否有重复，有的话则 throw 告知
-    const addSuccessfulHotkeyId = hotkeyConfigPool.add({
-      keyComb: hotkey,
-      feature: filteredFeatureOption
-    });
-
-    if (addSuccessfulHotkeyId) {
-      keyObserver.startObserve(addSuccessfulHotkeyId);
-    } else {
-      throw new Error('添加失败，因 Id 重复');
-    }
   }
 };
 

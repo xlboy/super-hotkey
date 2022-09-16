@@ -5,9 +5,11 @@
  */
 
 import { defineVariables } from '../types/base';
-import { isMacPlatform } from '../utils';
+import { isApplePlatform } from '../utils';
 
 export type DefaultCode = DefaultNormalCode | DefaultModifierCode;
+
+export type MergedCode = MergedModifierCode | MergedNormalCode;
 
 //#region  //*=========== Modifier Key ===========
 export { defaultModifierCodes, extendedModifierCodeMap };
@@ -37,7 +39,7 @@ const extendedModifierCodeMap = defineVariables<Record<string, DefaultModifierCo
   '⌃': ['ControlLeft', 'ControlRight'],
 
   Meta: ['MetaLeft', 'MetaRight'],
-  Mod: isMacPlatform() ? ['MetaLeft', 'MetaRight'] : ['ControlLeft', 'ControlRight']
+  Mod: isApplePlatform() ? ['MetaLeft', 'MetaRight'] : ['ControlLeft', 'ControlRight']
 });
 
 type DefaultModifierCode = typeof defaultModifierCodes[number];

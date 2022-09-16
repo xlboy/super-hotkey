@@ -1,8 +1,8 @@
 import { isEqual, isMatch, pick } from 'lodash-es';
 import { nanoid } from 'nanoid';
 
-import type { DefaultCode } from './constants/keyboard-code';
-import type { TargetElementToObserve } from './types/base';
+import type { MergedModifierCode, MergedNormalCode } from './constants/keyboard-code';
+import { defaultModifierCodes, extendedModifierCodeMap } from './constants/keyboard-code';
 import type FeatureOption from './types/feature-option';
 import type Hotkey from './types/hotkey';
 
@@ -81,26 +81,38 @@ class HotkeyConfigPool {
             commonKeyCombIndex >= 0;
             commonKeyCombIndex--
           ) {
-            const commonKeyComb = config.keyComb.contents[commonKeyCombIndex];
-            const isPassedKeyComb = condition.keyComb.contents.some(cKeyComb => {
-              if (cKeyComb.type === 'longPress' && commonKeyComb.type === 'longPress') {
-                if (Reflect.has(cKeyComb, 'longPressTime')) {
-                  if (cKeyComb.longPressTime !== commonKeyComb.longPressTime) {
+            const configCommonKeyComb = config.keyComb.contents[commonKeyCombIndex];
+            const isPassedKeyComb = condition.keyComb.contents.some(conditionKeyComb => {
+              if (
+                conditionKeyComb.type === 'longPress' &&
+                configCommonKeyComb.type === 'longPress'
+              ) {
+                if (Reflect.has(conditionKeyComb, 'longPressTime')) {
+                  if (
+                    conditionKeyComb.longPressTime !== configCommonKeyComb.longPressTime
+                  ) {
                     return false;
                   }
+                } else {
+                  return false;
                 }
 
-                if (isEqual(cKeyComb.codes, commonKeyComb.codes)) {
+                if (
+                  isEqual(
+                    pick(conditionKeyComb, ['modifierCodes', 'normalCodes']),
+                    pick(configCommonKeyComb, ['modifierCodes', 'normalCodes'])
+                  )
+                ) {
                   return true;
                 }
               } else if (
-                cKeyComb.type === 'shortPress' &&
-                commonKeyComb.type === 'shortPress'
+                conditionKeyComb.type === 'shortPress' &&
+                configCommonKeyComb.type === 'shortPress'
               ) {
                 if (
                   isEqual(
-                    pick(cKeyComb, ['modifierKeys', 'normalKey']),
-                    pick(commonKeyComb, ['modifierKeys', 'normalKey'])
+                    pick(conditionKeyComb, ['modifierCodes', 'normalCodes']),
+                    pick(configCommonKeyComb, ['modifierCodes', 'normalCodes'])
                   )
                 ) {
                   return true;
@@ -111,7 +123,7 @@ class HotkeyConfigPool {
             });
 
             if (isPassedKeyComb) {
-              removedHotkeyTypes.push(commonKeyComb.type);
+              removedHotkeyTypes.push(configCommonKeyComb.type);
               config.keyComb.contents.splice(commonKeyCombIndex, 1);
             }
           }
@@ -119,8 +131,9 @@ class HotkeyConfigPool {
           // 如果 remove 了 long-press 类型的热键，则需要判断是否还有其余的同党。
           // 如果没有，即是在当前热键组里 「完全移除了 long-press」
           if (removedHotkeyTypes.includes('longPress')) {
-            const noLongPressKey =
-              config.keyComb.contents.findIndex(item => item.type === 'longPress') === -1;
+            const noLongPressKey = !config.keyComb.contents.some(
+              item => item.type === 'longPress'
+            );
 
             if (noLongPressKey) {
               completelyRemoveConfigs.longPress.push({ id, config });
@@ -128,9 +141,9 @@ class HotkeyConfigPool {
           }
 
           if (removedHotkeyTypes.includes('shortPress')) {
-            const noShortPressKey =
-              config.keyComb.contents.findIndex(item => item.type === 'shortPress') ===
-              -1;
+            const noShortPressKey = !config.keyComb.contents.some(
+              item => item.type === 'shortPress'
+            );
 
             if (noShortPressKey) {
               completelyRemoveConfigs.shortPress.push({ id, config });
@@ -155,11 +168,13 @@ class HotkeyConfigPool {
           completelyRemoveConfigs.shortPress.push({ id, config });
           this.configMap.delete(id);
         } else {
-          const hasShortPressKey =
-            config.keyComb.contents.findIndex(item => item.type === 'shortPress') !== -1;
+          const hasShortPressKey = config.keyComb.contents.some(
+            item => item.type === 'shortPress'
+          );
 
-          const hasLongPressKey =
-            config.keyComb.contents.findIndex(item => item.type === 'longPress') !== -1;
+          const hasLongPressKey = config.keyComb.contents.some(
+            item => item.type === 'longPress'
+          );
 
           if (hasShortPressKey) {
             completelyRemoveConfigs.shortPress.push({ config, id });
@@ -186,10 +201,6 @@ class HotkeyConfigPool {
     return this.configMap.get(id);
   };
 
-  public forEach = (callbackFn: (config: HotkeyConfig, id: HotkeyId) => void): void => {
-    this.configMap.forEach(callbackFn);
-  };
-
   public get utils() {
     return {
       convertToInternalKeyComb: convertToInternalKeyComb.bind(this)
@@ -199,8 +210,157 @@ class HotkeyConfigPool {
       polymorphicHotkey:
         | Hotkey.Polymorphic.Common.Index
         | Hotkey.Polymorphic.Sequence.Index
-    ): HotkeyConfig['keyComb'] {
-      return {} as any;
+    ): HotkeyConfig['keyComb'] | undefined {
+      let keyComb: HotkeyConfig['keyComb'] | undefined;
+
+      if (isCommonObjType(polymorphicHotkey)) {
+        keyComb = {
+          type: 'common',
+          contents: [commonObjHandler(polymorphicHotkey)]
+        };
+      } else if (typeof polymorphicHotkey === 'string') {
+        const { result, isKeySequence } = stringTypeHandler(polymorphicHotkey);
+
+        if (isKeySequence) {
+          keyComb = {
+            type: 'sequence',
+            contents: result.map(
+              item =>
+                ({
+                  ...item,
+                  interval: 'unlimited-time'
+                } as Hotkey.Internal.Sequence)
+            )
+          };
+        } else {
+          keyComb = {
+            type: 'common',
+            contents: result.map(item => ({ ...item, type: 'shortPress' }))
+          };
+        }
+      } else if (Array.isArray(polymorphicHotkey)) {
+        keyComb = {
+          type: 'common',
+          contents: []
+        };
+        for (const hotkey of polymorphicHotkey) {
+          if (typeof hotkey === 'string') {
+            const { result, isKeySequence } = stringTypeHandler(hotkey);
+
+            if (!isKeySequence) {
+              keyComb.contents.push(
+                ...result.map(item => ({ ...item, type: 'shortPress' as any }))
+              );
+            }
+          } else if (isCommonObjType(hotkey)) {
+            keyComb.contents.push(commonObjHandler(hotkey));
+          }
+        }
+      }
+
+      return keyComb;
+
+      function isCommonObjType(hotkey: any): hotkey is Hotkey.Polymorphic.Common.Obj {
+        return Object.prototype.toString.call(hotkey) === '[object Object]';
+      }
+
+      function commonObjHandler(commonObj: Hotkey.Polymorphic.Common.Obj) {
+        const { longPressTime, modifierKey, normalKey } = commonObj;
+
+        const modifierCodes = (
+          modifierKey
+            ? typeof modifierKey === 'string'
+              ? specifyCharSplit(modifierKey, ',')
+              : modifierKey
+            : []
+        ) as MergedModifierCode[];
+
+        const normalCodes = (
+          normalKey
+            ? typeof normalKey === 'string'
+              ? specifyCharSplit(normalKey, ',')
+              : normalKey
+            : []
+        ) as MergedNormalCode[];
+
+        return (
+          longPressTime !== undefined
+            ? {
+                type: 'longPress',
+                longPressTime,
+                modifierCodes,
+                normalCodes
+              }
+            : {
+                type: 'shortPress',
+                modifierCodes,
+                normalCodes
+              }
+        ) as any;
+      }
+
+      function stringTypeHandler(hotkeyStr: string) {
+        const result: Hotkey.Internal.BaseCode[] = [];
+
+        const hotkeys = isKeySequence()
+          ? // 'Ctrl+b c a' -> ['Ctrl+b', 'c', 'a']
+            hotkeyStr.split(' ').filter(_ => _)
+          : // 'Ctrl+b, c, a' -> ['Ctrl+b', 'c', 'a']
+            hotkeyStr
+              .split(',')
+              .map(_ => _.trim())
+              .filter(_ => _);
+
+        for (const hotkey of hotkeys) {
+          const codes = specifyCharSplit(hotkey, '+');
+          const currentModifierCodes: Hotkey.Internal.BaseCode['modifierCodes'] = [];
+          const currentNormalCodes: Hotkey.Internal.BaseCode['normalCodes'] = [];
+
+          for (const code of codes) {
+            if (isModifierCode(code)) {
+              currentModifierCodes.push(code);
+            } else {
+              currentNormalCodes.push(code as any);
+            }
+          }
+
+          result.push({
+            modifierCodes: currentModifierCodes,
+            normalCodes: currentNormalCodes
+          });
+        }
+
+        return {
+          result,
+          isKeySequence: isKeySequence()
+        };
+
+        function isModifierCode(code: any): code is MergedModifierCode {
+          return (
+            defaultModifierCodes.includes(code as any) ||
+            Reflect.has(extendedModifierCodeMap, code)
+          );
+        }
+
+        function isKeySequence(): any {
+          return false;
+        }
+      }
+
+      function specifyCharSplit(str: string, char: string) {
+        return str
+          .split(char)
+          .map((item, index, arr) => {
+            const nextItem = arr[index + 1];
+
+            if (item === '' && nextItem === '') {
+              return char;
+            }
+
+            return item;
+          })
+          .filter(_ => _);
+      }
     }
   }
 }

@@ -40,7 +40,6 @@ namespace FeatureOption {
 
       /**
        * Throttling delay of hotkey response, The unit is `ms`
-       * @default 0
        */
       throttleDelay?: number;
       /**
@@ -49,13 +48,8 @@ namespace FeatureOption {
        */
       allowRepeatWhenLongPress?: boolean;
     };
-    scope?: string;
-    /**
-     * **`热键级别`**
-     *
-     * 在相同热键中，会按照 `level 大小` 进行逐一响应
-     */
-    level?: number;
+    // scope?: string;
+    id?: string;
   }
 
   type Generator<CallbackOptions, DOMMethodOptions, Required extends boolean = true> =
@@ -76,12 +70,14 @@ namespace FeatureOption {
 
     /**
      * 要触发 `callback` 的目标元素
+     *
+     * @default document
      */
-    targetElement?: HTMLElement;
+    targetElement?: HTMLElement | Document;
     /**
      * **是否自动 `停止事件传播`**
      *
-     * 如为 `false`，则在 `handler` 中通过 `event.stopPropagation` 手动处理
+     * 如为 `false`，则在 `callback` 中通过 `event.stopPropagation` 手动处理
      *
      * @default false
      */
@@ -90,7 +86,7 @@ namespace FeatureOption {
     /**
      * **是否自动 `阻止浏览器默认行为`**
      *
-     * 如为 `false`，则在 `handler` 中通过 `event.preventDefault` 手动处理
+     * 如为 `false`，则在 `callback` 中通过 `event.preventDefault` 手动处理
      *
      * @default true
      */
@@ -114,9 +110,21 @@ namespace FeatureOption {
      *
      * @default document
      */
-    focusElement?: HTMLElement;
+    focusElement?: HTMLElement | Document;
 
-    // TODO: 后面再决定是否要加 autoStopPropagation、autoPreventDefault 等属性
+    /**
+     * **是否自动 `停止事件传播`**
+     *
+     * @default false
+     */
+    autoStopPropagation?: boolean;
+
+    /**
+     * **是否自动 `阻止浏览器默认行为`**
+     *
+     * @default true
+     */
+    autoPreventDefault?: boolean;
   }
 }
 

@@ -29,15 +29,19 @@ class ShortPressMatcher {
     event: KeyboardEvent,
     triggerMode: FeatureOption.Internal.TriggerOptions['mode']
   ) => {
-    if (event.repeat) return;
-
     this.updateCode(hotkeyId, event, triggerMode);
 
     if (triggerMode === 'keydown' && event.type === 'keydown') {
       const hotkeyConfig = hotkeyConfigPool.findById(hotkeyId)!;
 
       if (this.verifyDownCode(hotkeyConfig, hotkeyId)) {
-        dispatch.dispatch(hotkeyConfig, event);
+        dispatch.dispatch(hotkeyId, hotkeyConfig, event);
+      }
+    } else if (triggerMode === 'keyup' && event.type === 'keyup') {
+      const hotkeyConfig = hotkeyConfigPool.findById(hotkeyId)!;
+
+      if (this.verifyUpCode(hotkeyConfig, hotkeyId)) {
+        dispatch.dispatch(hotkeyId, hotkeyConfig, event);
       }
     }
   };
@@ -107,6 +111,46 @@ class ShortPressMatcher {
 
             if (verifyResult.modifier.perfectMatch && verifyResult.normal.perfectMatch) {
               return true;
+            }
+          }
+        }
+
+        break;
+    }
+
+    return false;
+  }
+
+  private verifyUpCode(hotkeyConfig: HotkeyConfig, hotkeyId: HotkeyId) {
+    const downCode = this.proxyDownCodesMap[hotkeyId];
+    const upNormalCodes = [...this.upNormalCodesMap[hotkeyId]];
+
+    if (downCode.normals.size !== 0) {
+      return;
+    }
+
+    switch (hotkeyConfig.keyComb.type) {
+      case 'common':
+        for (const configCode of hotkeyConfig.keyComb.contents) {
+          if (configCode.type === 'shortPress') {
+            for (
+              let upNormalCodeIndex = upNormalCodes.length - 1;
+              upNormalCodeIndex >= 0;
+              upNormalCodeIndex--
+            ) {
+              const caudalUpNormalCodes = upNormalCodes.slice(upNormalCodeIndex);
+
+              const verifyResult = verifyCodeMatch(configCode, {
+                modifiers: [...downCode.modifiers],
+                normals: caudalUpNormalCodes
+              });
+
+              if (
+                verifyResult.modifier.perfectMatch &&
+                verifyResult.normal.perfectMatch
+              ) {
+                return true;
+              }
             }
           }
         }

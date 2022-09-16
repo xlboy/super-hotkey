@@ -15,8 +15,6 @@ class LongPressMatcher {
   > = {};
   private timerIdToFire: Record<HotkeyId, NodeJS.Timeout> = {};
   public match = (hotkeyId: HotkeyId, event: KeyboardEvent): void => {
-    if (event.repeat) return;
-
     this.updateDownCode(hotkeyId, event);
 
     if (event.type === 'keydown') {
@@ -48,7 +46,7 @@ class LongPressMatcher {
                 isAlreadyExecuted = true;
 
                 // 执行已达标的「长按热键」事件
-                dispatch.dispatch(hotkeyConfig, event);
+                dispatch.dispatch(hotkeyId, hotkeyConfig, event);
                 // TODO: 可能要给 timer-delay 加点料
               }, configKeyComb.longPressTime);
 
