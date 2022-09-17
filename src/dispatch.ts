@@ -20,17 +20,29 @@ class EventDispatch {
     const { trigger: triggerOptions } = hotkeyConfig.feature.options;
 
     if (fireInfo && triggerOptions.throttleDelay) {
+      // TODO: 在节流的时间内，不触发浏览器的默认行为。另外，还需辅助一波是否需要「阻止浏览器的默认行为」
+      const handlePreventDefault = () => {
+        if (hotkeyConfig.feature.options.autoPreventDefault) {
+          event.preventDefault();
+        }
+      };
+
       if (fireInfo.throttleTimerId) {
+        handlePreventDefault();
+
         return;
       }
 
       // 当「上次触发时间(1000ms) + 要求的间隔时间(3000ms) > 当前时间(2500ms)」时
       // 证明「当前事件是在间隔时间内触发」的。需要安排一波节流
-      if (fireInfo.fireTime + triggerOptions.throttleDelay > Date.now()) {
+      const inThrottling = fireInfo.fireTime + triggerOptions.throttleDelay > Date.now();
+
+      if (inThrottling) {
         fireInfo.throttleTimerId = setTimeout(() => {
           delete fireInfo.throttleTimerId;
           toFire();
         }, fireInfo.fireTime + triggerOptions.throttleDelay - Date.now());
+        handlePreventDefault();
       } else {
         toFire();
       }
