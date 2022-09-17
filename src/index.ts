@@ -1,16 +1,17 @@
-export { superHotkey } from './entrance';
-
+import { superHotkey } from './entrance';
 import type FeatureOption from './types/feature-option';
 import type Hotkey from './types/hotkey';
 
-export type CommonHokeyObject = Hotkey.Polymorphic.Common.Obj;
+export type CommonHotkeyObject = Hotkey.Polymorphic.Common.Obj;
 
 export type CallbackOptions = FeatureOption.External.Callback;
 
 export type DOMMethodOptions = FeatureOption.External.DOMMethod;
 
 export type {
+  MergedCode,
   MergedModifierCode,
-  MergedNormalCode,
-  MergedCode
+  MergedNormalCode
 } from './constants/keyboard-code';
+
+export default superHotkey;
