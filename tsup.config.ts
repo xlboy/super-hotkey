@@ -6,5 +6,7 @@ export default defineConfig({
   clean: true,
   dts: {
     resolve: true
-  }
+  },
+  target: 'es5',
+  platform: 'browser'
 });
