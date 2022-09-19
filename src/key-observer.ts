@@ -110,11 +110,14 @@ class KeyObserver {
 
             artificialKeyUpTimerId[event.code] = setTimeout(() => {
               delete artificialKeyUpTimerId[event.code];
-              targetElement.dispatchEvent(
+              const artificialKeyUpTargetEl =
+                triggerOptions.mode === 'keydown' ? document : targetElement;
+
+              artificialKeyUpTargetEl.dispatchEvent(
                 new KeyboardEvent('keyup', pick(event, ['code', 'keyCode', 'key']))
               );
               // TODO: 300ms是不一定的…
-            }, 300);
+            }, 100);
           }
         }
 
