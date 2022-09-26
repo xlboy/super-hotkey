@@ -200,6 +200,11 @@ class KeyObserver {
         } else if (triggerOptions.mode === 'keydown') {
           targetElement.removeEventListener(
             'keydown',
+            shortPressListenerToStop.keyDown!,
+            triggerOptions.capture
+          );
+          document.removeEventListener(
+            'keyup',
             shortPressListenerToStop.keyUp!,
             triggerOptions.capture
           );
