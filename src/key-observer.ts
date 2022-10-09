@@ -215,6 +215,14 @@ class KeyObserver {
       }
     }
   }
+
+  public observeWindowBlur() {
+    window.addEventListener('blur', () => {
+      shortPressMatcher.clear();
+    });
+  }
 }
 
 export const keyObserver = new KeyObserver();
+
+keyObserver.observeWindowBlur();

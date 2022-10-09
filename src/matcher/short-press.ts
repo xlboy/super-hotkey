@@ -46,6 +46,12 @@ class ShortPressMatcher {
     }
   };
 
+  public clear = () => {
+    this.downCodeMap = {};
+    this.proxyDownCodesMap = {};
+    this.upNormalCodesMap = {};
+  };
+
   private updateCode(
     hotkeyId: HotkeyId,
     event: KeyboardEvent,
