@@ -1,4 +1,4 @@
-import type { PartialDeep } from 'type-fest';
+// import type { PartialDeep } from 'type-fest';
 
 namespace FeatureOption {
   export namespace Internal {
@@ -19,11 +19,7 @@ namespace FeatureOption {
     export type Union = Generator<Callback, DOMMethod>;
   }
 
-  export type Condition = Generator<
-    PartialDeep<_Callback>,
-    PartialDeep<_DOMMethod>,
-    false
-  >;
+  export type Condition = Generator<Partial<_Callback>, Partial<_DOMMethod>, false>;
 
   interface Base {
     trigger?: {

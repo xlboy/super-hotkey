@@ -1,6 +1,8 @@
-import type { LiteralUnion } from 'type-fest';
-
-import type { MergedModifierCode, MergedNormalCode } from '../constants/keyboard-code';
+import type {
+  MergedCode,
+  MergedModifierCode,
+  MergedNormalCode
+} from '../constants/keyboard-code';
 
 namespace Hotkey {
   export namespace Internal {
@@ -24,13 +26,13 @@ namespace Hotkey {
 
   export namespace Polymorphic {
     namespace Modifier {
-      export type Str = LiteralUnion<MergedModifierCode, string>;
+      export type Str = MergedModifierCode | (string & {});
 
       export type Arr = MergedModifierCode[];
     }
 
     export namespace Common {
-      type Str = LiteralUnion<MergedModifierCode | MergedNormalCode, string>;
+      export type Str = MergedCode | (string & {});
 
       export type Obj = {
         modifierKey?: Modifier.Str | Modifier.Arr;
@@ -62,7 +64,7 @@ namespace Hotkey {
     }
 
     export namespace Sequence {
-      type Str = LiteralUnion<MergedModifierCode | MergedNormalCode, string>;
+      type Str = MergedCode | (string & {});
 
       type Obj = {
         modifierKey?: Modifier.Str | Modifier.Arr;

@@ -1,6 +1,3 @@
-import type { PartialDeep } from 'type-fest';
-
-import type { HotkeyConfig } from './hotkey-config-poll';
 import { hotkeyConfigPool } from './hotkey-config-poll';
 import { keyObserver } from './key-observer';
 import type { ExtractFunctionFromPolymorphicType } from './types/base';
@@ -45,7 +42,7 @@ export interface SuperHotkey {
   unbindDOMMethod(): void;
   unbindDOMMethod(
     hotkey: HotkeyPolymorphicParams,
-    condition?: PartialDeep<FeatureOption.External.DOMMethod>
+    condition?: Partial<FeatureOption.External.DOMMethod>
   ): void;
 
   /**
@@ -54,7 +51,7 @@ export interface SuperHotkey {
   unbindCallback(): void;
   unbindCallback(
     hotkey: HotkeyPolymorphicParams,
-    conditions: PartialDeep<FeatureOption.External.Callback>
+    conditions: Partial<FeatureOption.External.Callback>
   ): void;
 }
 
@@ -153,7 +150,7 @@ superHotkey.unbindDOMMethod = (
     | []
     | [
         hotkey: HotkeyPolymorphicParams,
-        condition?: PartialDeep<FeatureOption.External.DOMMethod>
+        condition?: Partial<FeatureOption.External.DOMMethod>
       ]
 ) => {
   const defaultAllUnbind = args.length === 0;
@@ -178,7 +175,7 @@ superHotkey.unbindCallback = (
     | []
     | [
         hotkey: HotkeyPolymorphicParams,
-        condition?: PartialDeep<FeatureOption.External.Callback>
+        condition?: Partial<FeatureOption.External.Callback>
       ]
 ) => {
   const defaultAllUnbind = args.length === 0;
