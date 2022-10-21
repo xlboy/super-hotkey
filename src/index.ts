@@ -14,4 +14,11 @@ export type {
   MergedNormalCode
 } from './constants/keyboard-code';
 
+export {
+  defaultModifierCodes,
+  defaultNormalCodes,
+  extendedModifierCodeMap,
+  extendedNormalCodeMap
+} from './constants/keyboard-code';
+
 export default superHotkey;
