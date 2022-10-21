@@ -8,5 +8,6 @@ export default defineConfig({
     resolve: true
   },
   target: 'es5',
-  platform: 'browser'
+  platform: 'browser',
+  sourcemap: true
 });
