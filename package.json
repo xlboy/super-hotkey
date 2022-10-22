@@ -2,7 +2,7 @@
   "name": "super-hotkey",
   "description": "A hotkey for super",
   "author": "xlboy, HaibaraAiSherry",
-  "version": "0.0.1-alpha.2",
+  "version": "0.0.1-alpha.3",
   "license": "MIT",
   "packageManager": ">=pnpm@7.5.0",
   "engines": {
