@@ -31,7 +31,7 @@
     "keyboard"
   ],
   "scripts": {
-    "postinstall": "simple-git-hooks",
+    "prepare": "simple-git-hooks",
     "test": "cypress open",
     "build": "cypress run && tsup",
     "clean": "rimraf ./**/node_modules",
